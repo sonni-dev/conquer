@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Quest Tracker{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- Progress Section -->
+    <div class="progress-section">
+        <div class="level-card">
+            <div class="level-badge">
+                <span class="level-number">{{ progress.current_level }}</span>
+                <span class="level-label">Level</span>
+            </div>
+            <div class="xp-container">
+                <div class="xp-bar-bg">
+                    <div class="xp-bar-fill" style="width: {{ xp_progress_percent }}%"></div>
+                </div>
+                <div class="xp-text">{{ progress.total_xp % 100 }} / 100 XP</div>
+                <div class="xp-next">{{ xp_needed }} XP to Level {{ progress.current_level + 1 }}</div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-value">{{ progress.current_streak }}</div>
+                <div class="stat-label">Day Streak</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-value">{{ progress.longest_streak }}</div>
+                <div class="stat-label">Best Streak</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value">{{ progress.tasks_completed }}</div>
+                <div class="stat-label">Total Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-value">{{ weekly_stats.completions or 0 }}</div>
+                <div class="stat-label">This Week</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Completions -->
+    {% if todays_completions %}
+    <div class="completions-section">
+        <h2>✨ Completed Today</h2>
+        <div class="completions-list">
+            {% for completion in todays_completions %}
+            <div class="completion-item">
+                <span class="completion-check">✓</span>
+                <span class="completion-title">{{ completion.title }}</span>
+                <span class="completion-points">+{{ completion.points }} XP</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Quest Select -->
+    <div class="quick-select">
+        <h2>🎯 Quick Quest Select</h2>
+        <p class="subtitle">Choose a quest based on how you're feeling:</p>
+        <div class="mood-buttons">
+            <a href="{{ url_for('quest_select') }}?energy=high" class="mood-btn high-energy">
+                ⚡ High Energy
+            </a>
+            <a href="{{ url_for('quest_select') }}?energy=low" class="mood-btn low-energy">
+                🌙 Low Energy
+            </a>
+            <a href="{{ url_for('quest_select') }}?location=outdoor" class="mood-btn outdoor">
+                🌳 Get Outside
+            </a>
+            <a href="{{ url_for('quest_select') }}?effort=physical" class="mood-btn physical">
+                💪 Physical Task
+            </a>
+        </div>
+    </div>
+
+    <!-- Task Overview -->
+    <div class="tasks-overview">
+        <div class="task-category">
+            <h3>📆 Daily Tasks <span class="task-count">{{ daily_tasks|length }}</span></h3>
+            <div class="task-list">
+                {% for task in daily_tasks[:5] %}
+                <div class="task-item">
+                    <div class="task-info">
+                        <div class="task-title">{{ task.title }}</div>
+                        <div class="task-tags">
+                            {% if task.effort_type %}
+                            <span class="tag tag-effort">{{ task.effort_type }}</span>
+                            {% endif %}
+                            {% if task.location_type %}
+                            <span class="tag tag-location">{{ task.location_type }}</span>
+                            {% endif %}
+                            {% if task.energy_level %}
+                            <span class="tag tag-energy">{{ task.energy_level }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <span class="task-points">{{ task.points }} XP</span>
+                        <button class="btn-complete" onclick="completeTask({{ task.id }})">✓</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="task-category">
+            <h3>🔄 Weekly Tasks <span class="task-count">{{ weekly_tasks|length }}</span></h3>
+            <div class="task-list">
+                {% for task in weekly_tasks[:5] %}
+                <div class="task-item">
+                    <div class="task-info">
+                        <div class="task-title">{{ task.title }}</div>
+                        <div class="task-tags">
+                            {% if task.effort_type %}
+                            <span class="tag tag-effort">{{ task.effort_type }}</span>
+                            {% endif %}
+                            {% if task.location_type %}
+                            <span class="tag tag-location">{{ task.location_type }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <span class="task-points">{{ task.points }} XP</span>
+                        <button class="btn-complete" onclick="completeTask({{ task.id }})">✓</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="task-category">
+            <h3>⭐ Bonus Tasks <span class="task-count">{{ bonus_tasks|length }}</span></h3>
+            <div class="task-list">
+                {% for task in bonus_tasks[:5] %}
+                <div class="task-item">
+                    <div class="task-info">
+                        <div class="task-title">{{ task.title }}</div>
+                        <div class="task-tags">
+                            {% if task.effort_type %}
+                            <span class="tag tag-effort">{{ task.effort_type }}</span>
+                            {% endif %}
+                            {% if task.energy_level %}
+                            <span class="tag tag-energy">{{ task.energy_level }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <span class="task-points">{{ task.points }} XP</span>
+                        <button class="btn-complete" onclick="completeTask({{ task.id }})">✓</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="notification" class="notification"></div>
+{% endblock %}

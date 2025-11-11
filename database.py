@@ -190,3 +190,77 @@ def update_streak():
                     last_completion_date = ?
                 WHERE id = 1
             ''', (today.isoformat(),))
+
+
+def get_tasks(task_type=None, filters=None):
+    """Get tasks, optionally filtered by type and attributes"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        query = 'SELECT * FROM tasks WHERE is_active = 1'
+        params = []
+
+        if task_type:
+            query += ' AND task_type = ?'
+            params.append(task_type)
+
+        if filters:
+            if filters.get('effort_type'):
+                query += ' AND effort_type = ?'
+                params.append(filters['effort_type'])
+            if filters.get('location_type'):
+                query += ' AND location_type = ?'
+                params.append(filters['location_type'])
+            if filters.get('energy_level'):
+                query += ' AND energy_level = ?'
+                params.append(filters['energy_level'])
+            
+        query += ' ORDER BY points DESC'
+        cursor.execute(query, params)
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def add_task(title, description, task_type, points, effort_type=None, location_type=None, energy_level=None):
+    """Add new task"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO tasks (title, description, task_type, points, 
+                             effort_type, location_type, energy_level)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (title, description, task_type, points, effort_type, 
+              location_type, energy_level))
+        return cursor.lastrowid
+
+
+def get_todays_completions():
+    """Get tasks completed today"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        today = datetime.now().date().isoformat()
+        cursor.execute('''
+            SELECT tc.*, t.title, t.points 
+            FROM task_completions tc
+            JOIN tasks t ON tc.task_id = t.id
+            WHERE DATE(tc.completed_at) = ?
+            ORDER BY tc.completed_at DESC
+        ''', (today,))
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_weekly_stats():
+    """Get stats for current week"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        
+        # Get start of current week (Monday)
+        today = datetime.now()
+        week_start = (today - timedelta(days=today.weekday())).date()
+        
+        cursor.execute('''
+            SELECT COUNT(*) as completions, SUM(points_earned) as points
+            FROM task_completions
+            WHERE DATE(completed_at) >= ?
+        ''', (week_start.isoformat(),))
+        
+        return dict(cursor.fetchone())

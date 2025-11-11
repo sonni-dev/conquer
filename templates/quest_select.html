@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Quest Select - Quest Tracker{% endblock %}
+
+{% block content %}
+<div class="quest-select">
+    <h1>🎯 Quest Selection</h1>
+    <p class="subtitle">Choose quests that match your current state</p>
+
+    <div class="filter-section">
+        <div class="filter-group">
+            <h3>How's your energy?</h3>
+            <div class="filter-buttons">
+                <button class="filter-btn" data-filter="energy_level" data-value="high">⚡ High Energy</button>
+                <button class="filter-btn" data-filter="energy_level" data-value="medium">🌤️ Medium Energy</button>
+                <button class="filter-btn" data-filter="energy_level" data-value="low">🌙 Low Energy</button>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <h3>What kind of effort?</h3>
+            <div class="filter-buttons">
+                <button class="filter-btn" data-filter="effort_type" data-value="physical">💪 Physical</button>
+                <button class="filter-btn" data-filter="effort_type" data-value="mental">🧠 Mental</button>
+                <button class="filter-btn" data-filter="effort_type" data-value="creative">🎨 Creative</button>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <h3>Where do you want to be?</h3>
+            <div class="filter-buttons">
+                <button class="filter-btn" data-filter="location_type" data-value="indoor">🏠 Indoor</button>
+                <button class="filter-btn" data-filter="location_type" data-value="outdoor">🌳 Outdoor</button>
+                <button class="filter-btn" data-filter="location_type" data-value="any">📍 Anywhere</button>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <button class="btn-primary" onclick="applyFilters()">Find Quests</button>
+            <button class="btn-secondary" onclick="clearFilters()">Clear All</button>
+        </div>
+    </div>
+
+    <div id="filtered-tasks" class="filtered-tasks">
+        <h2>Available Quests</h2>
+        <div id="tasks-container" class="tasks-container">
+            <p class="empty-state">Select filters above to find quests that match your mood!</p>
+        </div>
+    </div>
+</div>
+
+<div id="notification" class="notification"></div>
+
+<script>
+let selectedFilters = {
+    energy_level: null,
+    effort_type: null,
+    location_type: null
+};
+
+// Handle filter button clicks
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const filterType = this.dataset.filter;
+        const filterValue = this.dataset.value;
+        
+        // Toggle selection
+        const wasSelected = this.classList.contains('active');
+        
+        // Remove active from siblings
+        this.parentElement.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.remove('active');
+        });
+        
+        // Toggle this button
+        if (!wasSelected) {
+            this.classList.add('active');
+            selectedFilters[filterType] = filterValue;
+        } else {
+            selectedFilters[filterType] = null;
+        }
+    });
+});
+
+function applyFilters() {
+    // Build filter object
+    const filters = {};
+    if (selectedFilters.energy_level) filters.energy_level = selectedFilters.energy_level;
+    if (selectedFilters.effort_type) filters.effort_type = selectedFilters.effort_type;
+    if (selectedFilters.location_type) filters.location_type = selectedFilters.location_type;
+    
+    // Fetch filtered tasks
+    fetch('/api/tasks/filter', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(filters)
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayTasks(data.tasks);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error loading tasks', 'error');
+    });
+}
+
+function displayTasks(tasks) {
+    const container = document.getElementById('tasks-container');
+    
+    if (tasks.length === 0) {
+        container.innerHTML = '<p class="empty-state">No quests match your current filters. Try different criteria!</p>';
+        return;
+    }
+    
+    const html = tasks.map(task => `
+        <div class="quest-card">
+            <div class="quest-header">
+                <h3 class="quest-title">${task.title}</h3>
+                <span class="quest-points">${task.points} XP</span>
+            </div>
+            ${task.description ? `<p class="quest-description">${task.description}</p>` : ''}
+            <div class="quest-tags">
+                ${task.effort_type ? `<span class="tag tag-effort">${task.effort_type}</span>` : ''}
+                ${task.location_type ? `<span class="tag tag-location">${task.location_type}</span>` : ''}
+                ${task.energy_level ? `<span class="tag tag-energy">${task.energy_level}</span>` : ''}
+                <span class="tag tag-type">${task.task_type}</span>
+            </div>
+            <button class="btn-complete-large" onclick="completeTask(${task.id})">
+                Complete Quest
+            </button>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+function clearFilters() {
+    selectedFilters = {
+        energy_level: null,
+        effort_type: null,
+        location_type: null
+    };
+    
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    document.getElementById('tasks-container').innerHTML = 
+        '<p class="empty-state">Select filters above to find quests that match your mood!</p>';
+}
+
+// Check URL parameters on page load
+window.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.has('energy')) {
+        const energyBtn = document.querySelector(`[data-filter="energy_level"][data-value="${urlParams.get('energy')}"]`);
+        if (energyBtn) {
+            energyBtn.click();
+            applyFilters();
+        }
+    }
+    
+    if (urlParams.has('location')) {
+        const locationBtn = document.querySelector(`[data-filter="location_type"][data-value="${urlParams.get('location')}"]`);
+        if (locationBtn) {
+            locationBtn.click();
+            applyFilters();
+        }
+    }
+    
+    if (urlParams.has('effort')) {
+        const effortBtn = document.querySelector(`[data-filter="effort_type"][data-value="${urlParams.get('effort')}"]`);
+        if (effortBtn) {
+            effortBtn.click();
+            applyFilters();
+        }
+    }
+});
+</script>
+{% endblock %}

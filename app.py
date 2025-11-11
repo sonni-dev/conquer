@@ -79,30 +79,70 @@ def add_task_view():
 
     if request.method == 'POST':
         title = request.form.get('title')
-        description = request.form.get('description', '')
         task_type = request.form.get('task_type')
-        points = int(request.form.get('points'))
+        category = request.form.get('category')
+        
+        # High tier
+        high_description = request.form.get('high_description')
+        high_points = int(request.form.get('high_points'))
+        
+        # Medium tier
+        medium_description = request.form.get('medium_description')
+        medium_points = int(request.form.get('medium_points'))
+        
+        # Low tier
+        low_description = request.form.get('low_description')
+        low_points = int(request.form.get('low_points'))
+        
         effort_type = request.form.get('effort_type')
         location_type = request.form.get('location_type')
-        energy_level = request.form.get('energy_level')
-
-        add_task(title, description, task_type, points, effort_type, location_type, energy_level)
-
+        
+        add_task(title, task_type, category,
+                high_description, high_points,
+                medium_description, medium_points,
+                low_description, low_points,
+                effort_type, location_type)
+        
         return redirect(url_for('dashboard'))
     
-    return render_template('add_task.html')
+    return render_template('add_task.html', categories=CATEGORIES)
+
+
+@app.route('/task/<int:task_id>')
+def task_detail(task_id):
+    """Show task detail w tier selection for completion"""
+    task = get_task_by_id(task_id)
+    if not task:
+        return "Task not found", 404
+    
+    return render_template('tasks_detail.html', task=task)
 
 
 @app.route('/complete_task/<int:task_id>', methods=['POST'])
 def complete_task_route(task_id):
-    """Mark a task complete"""
+    """Mark a task complete w selected tier"""
 
-    tasks = get_tasks()
-    task = next((t for t in tasks if t['id'] == task_id), None)
+    data = request.get_json()
+    tier = data.get('tier', 'low')  # Default to low if not specified
+
+    task = get_task_by_id(task_id)
 
     if task:
-        complete_task(task_id, task['points'])
-        return jsonify({'success': True, 'message': f'Quest completed! +{task["points"]} XP'})
+        # Get points based on tier
+        if tier == 'high':
+            points = task['high_points']
+        elif tier == 'medium':
+            points = task['medium_points']
+        else:
+            points = task['low_points']
+        
+        complete_task(task_id, tier, points)
+        
+        tier_emoji = {'high': '🔥', 'medium': '⚡', 'low': '🌙'}
+        return jsonify({
+            'success': True, 
+            'message': f'Quest completed! {tier_emoji.get(tier, "")} {tier.upper()} tier +{points} XP'
+        })
     
     return jsonify({'success': False, 'message': 'Task not found'}), 404
 
@@ -110,7 +150,13 @@ def complete_task_route(task_id):
 @app.route('/quest_select')
 def quest_select():
     """Quest selection interface based on mood/energy"""
-    return render_template('quest_select.html')
+    energy_filter = request.args.get('energy')
+    category_filter = request.args.get('category')
+    
+    return render_template('quest_select.html', 
+                         categories=CATEGORIES,
+                         selected_energy=energy_filter,
+                         selected_category=category_filter)
 
 
 @app.route('/api/tasks/filter', methods=['POST'])
@@ -124,10 +170,10 @@ def filter_tasks():
         filters['effort_type'] = data['effort_type']
     if data.get('location_type'):
         filters['location_type'] = data['location_type']
-    if data.get('energy_level'):
-        filters['energy_level'] = data['energy_level']
     
-    tasks = get_tasks(filters=filters if filters else None)
+    category = data.get('category')
+    tasks = get_tasks(category=category, filters=filters if filters else None)
+    
     return jsonify({'tasks': tasks})
 
 

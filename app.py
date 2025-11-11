@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from database import (
-    init_db, get_user_progress, get_tasks, add_task, 
+    init_db, get_user_progress, get_tasks, add_task, get_task_by_id,
     complete_task, get_todays_completions, get_weekly_stats,
-    xp_for_next_level
+    xp_for_next_level, CATEGORIES, get_category_stats
 )
 import os
 
@@ -31,6 +31,9 @@ def dashboard():
     # Get weekly stats
     weekly_stats = get_weekly_stats()
 
+    # Get category stats
+    category_stats = get_category_stats()
+
     return render_template('dashboard.html',
                            progress=progress,
                            xp_needed=xp_needed,
@@ -39,7 +42,9 @@ def dashboard():
                            weekly_tasks=weekly_tasks,
                            bonus_tasks=bonus_tasks,
                            todays_completions=todays_completions,
-                           weekly_stats=weekly_stats)
+                           weekly_stats=weekly_stats,
+                           category_stats=category_stats,
+                           categories=CATEGORIES)
 
 
 @app.route('/tasks')
@@ -48,22 +53,24 @@ def tasks_view():
     
     effort_filter = request.args.get('effort')
     location_filter = request.args.get('location')
-    energy_filter = request.args.get('energy')
+    category_filter = request.args.get('category')
 
     filters = {}
     if effort_filter:
         filters['effort_type'] = effort_filter
     if location_filter:
         filters['location_type'] = location_filter
-    if energy_filter:
-        filters['energy_level'] = energy_filter
+    # if energy_filter:
+    #     filters['energy_level'] = energy_filter
     
 
-    tasks = get_tasks(filters=filters if filters else None)
+    tasks = get_tasks(category=category_filter, filters=filters if filters else None)
 
     return render_template('tasks.html',
                            tasks=tasks,
-                           current_filters=filters)
+                           current_filters=filters,
+                           categories=CATEGORIES,
+                           selected_category=category_filter)
 
 
 @app.route('/add_task', methods=['GET', 'POST'])

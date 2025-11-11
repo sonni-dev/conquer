@@ -5,6 +5,18 @@ from contextlib import contextmanager
 
 DATABASE = 'conquer.db'
 
+# Task Categories
+CATEGORIES = [
+    'Work',
+    'Coding / Personal Projects',
+    'Cleaning',
+    'Adulting',
+    'Doby',
+    'Social',
+    'Errands',
+    'Self Care'
+]
+
 @contextmanager
 def get_db():
     """Context manager for database connections"""
@@ -39,28 +51,37 @@ def init_db():
             )
         ''')
         
-        # Tasks table
+        # Tasks table w tired completion
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
-                description TEXT,
                 task_type TEXT NOT NULL,
-                points INTEGER NOT NULL,
+                category TEXT,
                 effort_type TEXT,
                 location_type TEXT,
-                energy_level TEXT,
+                
+                high_description TEXT,
+                high_points INTEGER NOT NULL,
+                
+                medium_description TEXT,
+                medium_points INTEGER NOT NULL,
+                
+                low_description TEXT,
+                low_points INTEGER NOT NULL,
+                
                 is_active INTEGER DEFAULT 1,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # Task completions table
+        # Task completions table - now tracks which tier was completed
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS task_completions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER NOT NULL,
                 completed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                tier_completed TEXT NOT NULL,
                 points_earned INTEGER NOT NULL,
                 FOREIGN KEY (task_id) REFERENCES tasks (id)
             )
@@ -106,16 +127,16 @@ def xp_for_next_level(current_xp):
     return next_level_xp - current_xp
 
 
-def complete_task(task_id, points):
-    """Mark task as complete and update user progress"""
+def complete_task(task_id, tier, points):
+    """Mark task as complete with specified tier and update user progress"""
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Record completion
+        # Record completion w tier
         cursor.execute('''
-            INSERT INTO task_completions (task_id, points_earned)
-            VALUES (?, ?)
-        ''', (task_id, points))
+            INSERT INTO task_completions (task_id, tier_completed, points_earned)
+            VALUES (?, ?, ?)
+        ''', (task_id, tier, points))
         
         # Update user progress
         cursor.execute('''
@@ -192,8 +213,8 @@ def update_streak():
             ''', (today.isoformat(),))
 
 
-def get_tasks(task_type=None, filters=None):
-    """Get tasks, optionally filtered by type and attributes"""
+def get_tasks(task_type=None, category=None, filters=None):
+    """Get tasks, optionally filtered by type, category, and attributes"""
     with get_db() as conn:
         cursor = conn.cursor()
 
@@ -204,6 +225,10 @@ def get_tasks(task_type=None, filters=None):
             query += ' AND task_type = ?'
             params.append(task_type)
 
+        if category:
+            query += ' AND category = ?'
+            params.append(category)
+
         if filters:
             if filters.get('effort_type'):
                 query += ' AND effort_type = ?'
@@ -211,35 +236,52 @@ def get_tasks(task_type=None, filters=None):
             if filters.get('location_type'):
                 query += ' AND location_type = ?'
                 params.append(filters['location_type'])
-            if filters.get('energy_level'):
-                query += ' AND energy_level = ?'
-                params.append(filters['energy_level'])
+            # if filters.get('energy_level'):
+            #     query += ' AND energy_level = ?'
+            #     params.append(filters['energy_level'])
             
-        query += ' ORDER BY points DESC'
+        query += ' ORDER BY high_points DESC'
         cursor.execute(query, params)
         return [dict(row) for row in cursor.fetchall()]
 
 
-def add_task(title, description, task_type, points, effort_type=None, location_type=None, energy_level=None):
-    """Add new task"""
+def get_task_by_id(task_id):
+    """Get a single task by ID"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM tasks WHERE id = ? AND is_active = 1', (task_id,))
+        result = cursor.fetchone()
+        return dict(result) if result else None
+
+
+def add_task(title, task_type, category, high_description, high_points,
+             medium_description, medium_points, low_description, low_points,
+             effort_type=None, location_type=None):
+    """Add a new tiered task"""
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO tasks (title, description, task_type, points, 
-                             effort_type, location_type, energy_level)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (title, description, task_type, points, effort_type, 
-              location_type, energy_level))
+            INSERT INTO tasks (title, task_type, category, 
+                             high_description, high_points,
+                             medium_description, medium_points,
+                             low_description, low_points,
+                             effort_type, location_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (title, task_type, category,
+              high_description, high_points,
+              medium_description, medium_points,
+              low_description, low_points,
+              effort_type, location_type))
         return cursor.lastrowid
 
 
 def get_todays_completions():
-    """Get tasks completed today"""
+    """Get tasks completed today with tier info"""
     with get_db() as conn:
         cursor = conn.cursor()
         today = datetime.now().date().isoformat()
         cursor.execute('''
-            SELECT tc.*, t.title, t.points 
+            SELECT tc.*, t.title, t.category
             FROM task_completions tc
             JOIN tasks t ON tc.task_id = t.id
             WHERE DATE(tc.completed_at) = ?
@@ -264,3 +306,30 @@ def get_weekly_stats():
         ''', (week_start.isoformat(),))
         
         return dict(cursor.fetchone())
+
+
+def get_category_stats():
+    """Get completion counts by category for current week"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        # Get start of current week (Monday)
+        today = datetime.now()
+        week_start = (today - timedelta(days=today.weekday())).date()
+
+        cursor.execute('''
+            SELECT t.category, COUNT(*) as count
+            FROM task_completions tc
+            JOIN tasks t ON tc.task_id = t.id
+            WHERE DATE(tc.completed_at) >= ? AND t.category IS NOT NULL
+            GROUP BY t.category
+        ''', (week_start.isoformat(),))
+        
+        results = {row['category']: row['count'] for row in cursor.fetchall()}
+
+        # Ensure all categories are represented
+        for category in CATEGORIES:
+            if category not in results:
+                results[category] = 0
+        
+        return results

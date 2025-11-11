@@ -5,18 +5,13 @@
 {% block content %}
 <div class="add-task">
     <h1>➕ Create New Quest</h1>
+    <p class="subtitle">Define three versions of this task based on energy levels</p>
     
     <form method="POST" class="task-form">
         <div class="form-group">
             <label for="title">Quest Title *</label>
             <input type="text" id="title" name="title" required 
-                   placeholder="e.g., Complete weekly grocery shopping">
-        </div>
-
-        <div class="form-group">
-            <label for="description">Description</label>
-            <textarea id="description" name="description" rows="3"
-                      placeholder="Optional details about this quest..."></textarea>
+                   placeholder="e.g., Clean the kitchen">
         </div>
 
         <div class="form-row">
@@ -31,10 +26,64 @@
             </div>
 
             <div class="form-group">
-                <label for="points">XP Reward *</label>
-                <input type="number" id="points" name="points" required min="1" max="1000"
-                       placeholder="10">
-                <small>Suggested: Easy=10, Medium=25, Hard=50</small>
+                <label for="category">Category *</label>
+                <select id="category" name="category" required>
+                    <option value="">Choose category...</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="tier-section">
+            <h3>🔥 High Energy Version</h3>
+            <p class="tier-help">The full, thorough version - everything done perfectly</p>
+            
+            <div class="form-group">
+                <label for="high_description">What needs to be done? *</label>
+                <textarea id="high_description" name="high_description" rows="3" required
+                          placeholder="e.g., Load & unload dishwasher, wipe all counters, clean stove, scrub sink, take out trash, sweep & mop floor"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="high_points">XP Reward *</label>
+                <input type="number" id="high_points" name="high_points" required min="1" max="1000"
+                       placeholder="50">
+            </div>
+        </div>
+
+        <div class="tier-section medium">
+            <h3>⚡ Medium Energy Version</h3>
+            <p class="tier-help">Broken into smaller wins - the important parts</p>
+            
+            <div class="form-group">
+                <label for="medium_description">What needs to be done? *</label>
+                <textarea id="medium_description" name="medium_description" rows="3" required
+                          placeholder="e.g., Load dishwasher, wipe main counter, clean stove, take out trash"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="medium_points">XP Reward *</label>
+                <input type="number" id="medium_points" name="medium_points" required min="1" max="1000"
+                       placeholder="30">
+            </div>
+        </div>
+
+        <div class="tier-section low">
+            <h3>🌙 Low Energy Version</h3>
+            <p class="tier-help">The absolute minimum that still counts - you did something!</p>
+            
+            <div class="form-group">
+                <label for="low_description">What needs to be done? *</label>
+                <textarea id="low_description" name="low_description" rows="3" required
+                          placeholder="e.g., Load dirty dishes into dishwasher, wipe main counter, take out trash"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="low_points">XP Reward *</label>
+                <input type="number" id="low_points" name="low_points" required min="1" max="1000"
+                       placeholder="15">
             </div>
         </div>
 
@@ -56,16 +105,6 @@
                     <option value="indoor">🏠 Indoor</option>
                     <option value="outdoor">🌳 Outdoor</option>
                     <option value="any">📍 Anywhere</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="energy_level">Energy Level</label>
-                <select id="energy_level" name="energy_level">
-                    <option value="">Choose...</option>
-                    <option value="high">⚡ High Energy</option>
-                    <option value="medium">🌤️ Medium Energy</option>
-                    <option value="low">🌙 Low Energy</option>
                 </select>
             </div>
         </div>

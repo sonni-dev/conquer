@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}{{ task.title }} - Quest Tracker{% endblock %}
+
+{% block content %}
+<div class="task-detail">
+    <div class="task-detail-header">
+        <h1>{{ task.title }}</h1>
+        <span class="task-category-badge">{{ task.category }}</span>
+    </div>
+    
+    <div class="task-meta">
+        <span class="tag tag-type">{{ task.task_type }}</span>
+        {% if task.effort_type %}
+        <span class="tag tag-effort">{{ task.effort_type }}</span>
+        {% endif %}
+        {% if task.location_type %}
+        <span class="tag tag-location">{{ task.location_type }}</span>
+        {% endif %}
+    </div>
+
+    <h2>Choose Your Energy Level</h2>
+    <p class="energy-help">Select which version you completed based on how you're feeling:</p>
+
+    <div class="tier-options">
+        <div class="tier-option high" onclick="selectTier('high', {{ task.high_points }})">
+            <div class="tier-header">
+                <span class="tier-emoji">🔥</span>
+                <h3>High Energy</h3>
+                <span class="tier-points">{{ task.high_points }} XP</span>
+            </div>
+            <p class="tier-description">{{ task.high_description }}</p>
+            <button type="button" class="btn-tier">Complete High Energy Version</button>
+        </div>
+
+        <div class="tier-option medium" onclick="selectTier('medium', {{ task.medium_points }})">
+            <div class="tier-header">
+                <span class="tier-emoji">⚡</span>
+                <h3>Medium Energy</h3>
+                <span class="tier-points">{{ task.medium_points }} XP</span>
+            </div>
+            <p class="tier-description">{{ task.medium_description }}</p>
+            <button type="button" class="btn-tier">Complete Medium Energy Version</button>
+        </div>
+
+        <div class="tier-option low" onclick="selectTier('low', {{ task.low_points }})">
+            <div class="tier-header">
+                <span class="tier-emoji">🌙</span>
+                <h3>Low Energy</h3>
+                <span class="tier-points">{{ task.low_points }} XP</span>
+            </div>
+            <p class="tier-description">{{ task.low_description }}</p>
+            <button type="button" class="btn-tier">Complete Low Energy Version</button>
+        </div>
+    </div>
+
+    <div class="task-actions-bottom">
+        <a href="{{ url_for('dashboard') }}" class="btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<div id="notification" class="notification"></div>
+
+<script>
+function selectTier(tier, points) {
+    if (!confirm(`Complete this quest at ${tier.toUpperCase()} energy for ${points} XP?`)) {
+        return;
+    }
+
+    fetch('/complete_task/{{ task.id }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ tier: tier })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            setTimeout(() => {
+                window.location.href = '{{ url_for("dashboard") }}';
+            }, 1500);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error completing task', 'error');
+    });
+}
+</script>
+{% endblock %}

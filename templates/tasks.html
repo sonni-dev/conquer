@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}All Tasks - Quest Tracker{% endblock %}
+
+{% block content %}
+<div class="all-tasks">
+    <h1>📋 All Quests</h1>
+    
+    <div class="tasks-filters">
+        <a href="{{ url_for('tasks_view') }}" 
+           class="filter-link {% if not current_filters %}active{% endif %}">
+            All
+        </a>
+        <a href="{{ url_for('tasks_view', effort='physical') }}" 
+           class="filter-link {% if current_filters.get('effort_type') == 'physical' %}active{% endif %}">
+            💪 Physical
+        </a>
+        <a href="{{ url_for('tasks_view', effort='mental') }}" 
+           class="filter-link {% if current_filters.get('effort_type') == 'mental' %}active{% endif %}">
+            🧠 Mental
+        </a>
+        <a href="{{ url_for('tasks_view', location='outdoor') }}" 
+           class="filter-link {% if current_filters.get('location_type') == 'outdoor' %}active{% endif %}">
+            🌳 Outdoor
+        </a>
+        <a href="{{ url_for('tasks_view', energy='high') }}" 
+           class="filter-link {% if current_filters.get('energy_level') == 'high' %}active{% endif %}">
+            ⚡ High Energy
+        </a>
+    </div>
+
+    <div class="tasks-grid">
+        {% if tasks %}
+            {% for task in tasks %}
+            <div class="task-card">
+                <div class="task-card-header">
+                    <h3>{{ task.title }}</h3>
+                    <span class="task-card-points">{{ task.points }} XP</span>
+                </div>
+                
+                {% if task.description %}
+                <p class="task-card-description">{{ task.description }}</p>
+                {% endif %}
+                
+                <div class="task-card-tags">
+                    <span class="tag tag-type">{{ task.task_type }}</span>
+                    {% if task.effort_type %}
+                    <span class="tag tag-effort">{{ task.effort_type }}</span>
+                    {% endif %}
+                    {% if task.location_type %}
+                    <span class="tag tag-location">{{ task.location_type }}</span>
+                    {% endif %}
+                    {% if task.energy_level %}
+                    <span class="tag tag-energy">{{ task.energy_level }}</span>
+                    {% endif %}
+                </div>
+                
+                <button class="btn-complete-full" onclick="completeTask({{ task.id }})">
+                    Complete Quest
+                </button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state-large">
+                <p>No quests found with these filters.</p>
+                <a href="{{ url_for('add_task_view') }}" class="btn-primary">Create Your First Quest</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="notification" class="notification"></div>
+{% endblock %}

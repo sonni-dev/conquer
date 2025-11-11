@@ -40,3 +40,28 @@ def dashboard():
                            bonus_tasks=bonus_tasks,
                            todays_completions=todays_completions,
                            weekly_stats=weekly_stats)
+
+
+@app.route('/tasks')
+def tasks_view():
+    """View and manage all tasks"""
+    effort_filter = request.args.get('effort')
+    location_filter = request.args.get('location')
+    energy_filter = request.args.get('energy')
+
+    filters = {}
+    if effort_filter:
+        filters['effort_type'] = effort_filter
+    if location_filter:
+        filters['location_type'] = location_filter
+    if energy_filter:
+        filters['energy_level'] = energy_filter
+    
+
+    tasks = get_tasks(filters=filters if filters else None)
+
+    return render_template('tasks.html',
+                           tasks=tasks,
+                           current_filters=filters)
+
+

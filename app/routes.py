@@ -103,6 +103,77 @@ def create_template():
     return render_template('create_template.html', categories=CATEGORIES)
 
 
+@app.route('/template/<int:template_id>/edit', methods=['GET', 'POST'])
+def edit_template(template_id):
+    """Edit an existing template"""
+    template = TaskTemplate.query.get_or_404(template_id)
+
+    if request.method == 'POST':
+        template.title = request.form.get('title')
+        template.category = request.form.get('category')
+        template.task_type = request.form.get('task_type')
+        template.effort_type = request.form.get('effort_type')
+        template.location_type = request.form.get('location_type')
+        template.base_xp_low = int(request.form.get('base_xp_low', 10))
+        template.base_xp_medium = int(request.form.get('base_xp_medium', 20))
+        template.base_xp_high = int(request.form.get('base_xp_high', 30))
+
+        # Delete existing subtasks and recreate
+        SubTask.query.filter_by(template_id=template.id).delete()
+
+        subtask_descriptions = request.form.getlist('subtask_descriptions[]')
+        subtask_levels = request.form.getlist('subtask_level[]')
+
+        for i, (desc, level) in enumerate(zip(subtask_descriptions, subtask_levels)):
+            if desc.strip():
+                subtask = SubTask(
+                    template_id=template.id,
+                    description=desc.strip(),
+                    level=int(level),
+                    order=i
+                )
+                db.session.add(subtask)
+        
+        db.session.commit()
+        return redirect(url_for('templates_list'))
+    
+    return render_template('edit_template.html', template=template, categories=CATEGORIES)
+
+
+@app.route('/template/<int:template_id>/add', methods=['POST'])
+def add_task_from_template(template_id):
+    """Create task instance from a template"""
+    template = TaskTemplate.query.get_or_404(template_id)
+    data = request.get_json()
+    tier = int(data.get('tier', 1))
+
+    # Create task instance
+    instance = TaskInstance(
+        template_id=template.id,
+        selected_tier=tier
+    )
+    db.session.add(instance)
+    db.session.flush()
+
+    # Create subtask completions for available subtasks
+    available_subtasks = template.get_subtasks_for_tier(tier)
+    for subtask in available_subtasks:
+        completion = SubTaskCompletion(
+            task_instance=instance.id,
+            subtask_id=subtask.id,
+            completed=False
+        )
+        db.session.add(completion)
+    
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': f'Added {template.title} to your tasks!',
+        'instance_id': instance.id
+    })
+
+
 @app.route('/tasks')
 def tasks_view():
     """View and manage all tasks"""

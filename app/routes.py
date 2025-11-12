@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 import datetime as dt
 from app import app, db
 from app.models import (
-    init_db, get_or_create_user, 
+    get_or_create_user, 
     TaskTemplate, SubTask, TaskInstance, SubTaskCompletion,
     UserProgress, CATEGORIES
 )
@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize db on startup
-init_db(app)
+# init_db(app)
 
 
 @app.route('/')

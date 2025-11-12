@@ -7,7 +7,7 @@ from datetime import datetime
 from app import app, db
 from typing import List, Optional
 
-db = SQLAlchemy()
+# db = SQLAlchemy()
 
 # Task Categories
 CATEGORIES = [
@@ -174,30 +174,41 @@ class SubTaskCompletion(db.Model):
         self.completed_at = datetime.now(dt.timezone.utc) if self.completed else None
 
 
-def init_db(app):
-    """Initialize db and Create tables and user if none"""
-    db.init_app(app)
+# Create table schema in db. Requires app context
+with app.app_context():
+    db.create_all()
 
-    with app.app_context():
-        db.create_all()
+# def init_db(app):
+#     """Initialize db and Create tables and user if none"""
+#     # db.init_app(app)
 
-        # Create default user progress if not exists
-        if not UserProgress.query.first():
-            user = UserProgress(
-                total_xp=0,
-                current_level=1,
-                tasks_completed=0,
-                current_streak=0,
-                longest_streak=0
-            )
-            db.session.add(user)
-            db.session.commit()
+#     with app.app_context():
+#         db.create_all()
+
+#         # Create default user progress if not exists
+#         if not UserProgress.query.first():
+#             user = UserProgress(
+#                 total_xp=0,
+#                 current_level=1,
+#                 tasks_completed=0,
+#                 current_streak=0,
+#                 longest_streak=0
+#             )
+#             db.session.add(user)
+#             db.session.commit()
 
 def get_or_create_user():
     """Get the user progress record (single user system)"""
     user = UserProgress.query.first()
     if not user:
-        user = UserProgress()
+        user = UserProgress(
+            total_xp=0,
+            current_level=1,
+            tasks_completed=0,
+            current_streak=0,
+            longest_streak=0
+        )
         db.session.add(user)
         db.session.commit()
     return user
+

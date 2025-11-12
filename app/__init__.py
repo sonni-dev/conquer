@@ -12,4 +12,4 @@ db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
 
-from app import routes, models, errors
+from app import routes, models

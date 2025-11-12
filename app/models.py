@@ -3,6 +3,7 @@ from sqlalchemy import Integer, String, Text, ForeignKey, Boolean, DateTime
 
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from app import app, db
 
 db = SQLAlchemy()
 

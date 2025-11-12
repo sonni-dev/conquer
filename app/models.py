@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 import datetime as dt
 from datetime import datetime
 from app import app, db
-from typing import List
+from typing import List, Optional
 
 db = SQLAlchemy()
 
@@ -32,7 +32,7 @@ class UserProgress(db.Model):
     tasks_completed: Mapped[int] = mapped_column(Integer, default=0)
     current_streak: Mapped[int] = mapped_column(Integer, default=0)
     longest_streak: Mapped[int] = mapped_column(Integer, default=0)
-    last_completion_date: Mapped[datetime.date] = mapped_column(Date, nullable=True)
+    last_completion_date: Mapped[dt.date] = mapped_column(Date, nullable=True)
 
     def calculate_level(self):
         """Calculate level based on XP (100 XP per level)"""
@@ -146,3 +146,49 @@ class TaskInstance(db.Model):
         
         status = self.get_completion_status()
         return status['percentage'] == 100
+
+
+class SubTaskCompletion(db.Model):
+    """Track completion of individual subtasks within a task instance"""
+    __tablename__ = 'subtask_completions'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    task_instance_id: Mapped[int] = mapped_column(Integer, ForeignKey('task_instances.id'), nullable=False)
+    subtask_id: Mapped[int] = mapped_column(Integer, ForeignKey('subtasks.id'), nullable=False)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+
+    # Relationship to subtask for easy access
+    subtask: Mapped['SubTask'] = relationship(back_populates='subtask_completion')
+
+    def toggle(self):
+        """Toggle completion status"""
+        self.completed = not self.completed
+        self.completed_at = datetime.now(dt.timezone.utc) if self.completed else None
+
+
+def init_db(app):
+    """Create tables and user if none"""
+    with app.app_context():
+        db.create_all()
+
+        # Create default user progress if not exists
+        if not UserProgress.query.first():
+            user = UserProgress(
+                total_xp=0,
+                current_level=1,
+                tasks_completed=0,
+                current_streak=0,
+                longest_streak=0
+            )
+            db.session.add(user)
+            db.session.commit()
+
+def get_or_create_user():
+    """Get the user progress record (single user system)"""
+    user = UserProgress.query.first()
+    if not user:
+        user = UserProgress()
+        db.session.add(user)
+        db.session.commit()
+    return user

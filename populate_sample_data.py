@@ -1,5 +1,5 @@
 from app import app
-from models import db, TaskTemplate, SubTask
+from app.models import db, TaskTemplate, SubTask
 
 def populate_sample_templates():
     """Add sample task templates with tiered subtasks"""

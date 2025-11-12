@@ -1,50 +1,53 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
-from database import (
-    init_db, get_user_progress, get_tasks, add_task, get_task_by_id,
-    complete_task, get_todays_completions, get_weekly_stats,
-    xp_for_next_level, CATEGORIES, get_category_stats
+from datetime import datetime, date, timedelta
+from app import app, db
+from app.models import (
+    init_db, get_or_create_user, 
+    TaskTemplate, SubTask, TaskInstance, SubTaskCompletion,
+    UserProgress, CATEGORIES
 )
 import os
+from dotenv import load_dotenv
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(24)
+load_dotenv()
 
 # Initialize db on startup
-init_db()
+init_db(app)
+
 
 @app.route('/')
 def dashboard():
     """Main dashboard view"""
+    user = get_or_create_user()
 
-    progress = get_user_progress()
-    xp_needed = xp_for_next_level(progress['total_xp'])
-    xp_progress_percent = ((progress['total_xp'] % 100) / 100) * 100
+    # Get today's active task instances
+    today_instances = TaskInstance.query.filter(
+        db.func.date(TaskInstance.created_at) == date.today()
+    ).all()
 
-    # Get task counts by type
-    daily_tasks = get_tasks(task_type='daily')
-    weekly_tasks = get_tasks(task_type='weekly')
-    bonus_tasks = get_tasks(task_type='bonus')
-
-    # Get today's completions
-    todays_completions = get_todays_completions()
+    # Separate by completion status
+    active_tasks = [t for t in today_instances if not t.is_completed]
+    completed_tasks = [t for t in today_instances if t.is_completed]
 
     # Get weekly stats
-    weekly_stats = get_weekly_stats()
+    week_start = date.today() - timedelta(days=date.today().weekday())
+    weekly_completions = TaskInstance.query.filter(
+        db.func.date(TaskInstance.completed_at) >= week_start
+    ).all()
 
-    # Get category stats
-    category_stats = get_category_stats()
+    # Category stats
+    category_stats = {}
+    for cat in CATEGORIES:
+        count = sum(1 for t in weekly_completions if t.template.category == cat)
+        category_stats[cat] = count
 
     return render_template('dashboard.html',
-                           progress=progress,
-                           xp_needed=xp_needed,
-                           xp_progress_percent=xp_progress_percent,
-                           daily_tasks=daily_tasks,
-                           weekly_tasks=weekly_tasks,
-                           bonus_tasks=bonus_tasks,
-                           todays_completions=todays_completions,
-                           weekly_stats=weekly_stats,
-                           category_stats=category_stats,
-                           categories=CATEGORIES)
+                         user=user,
+                         active_tasks=active_tasks,
+                         completed_tasks=completed_tasks,
+                         weekly_completions=len(weekly_completions),
+                         category_stats=category_stats,
+                         categories=CATEGORIES)
 
 
 @app.route('/tasks')

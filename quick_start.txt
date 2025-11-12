@@ -1,134 +1,146 @@
-🎮 CONQUER - Quest Tracker - QUICK START GUIDE (v2.0 - Tiered Tasks)
-==============================================================
+🗡️ CONQUER - QUICK START GUIDE
+================================
 
-Your ADHD/Depression-friendly gamified task tracking system is ready!
+Welcome to Conquer! Your ADHD-friendly task tracker with checkable subtasks.
 
-✨ NEW FEATURES:
-- THREE ENERGY TIERS per task (High 🔥 / Medium ⚡ / Low 🌙)
-- LIFE BALANCE TRACKING across 8 categories
-- FLEXIBLE COMPLETION - choose what you did based on how you felt
-- NO GUILT - low energy completion still counts!
+🎯 THE BIG IDEA
+===============
+Instead of "Clean Kitchen" being one big task, you get a CHECKLIST:
+  ☐ Load dishes
+  ☐ Wipe counter  
+  ☐ Take out trash
 
-📦 WHAT'S INCLUDED:
-- Complete Python web application  
-- SQLite database with 14 tiered sample tasks
-- 8 life categories: Work, Coding, Cleaning, Adulting, Doby, Social, Errands, Self Care
-- Responsive dashboard with category balance tracking
-- Compassionate design for variable energy days
+Each checkbox = dopamine hit!
 
-🚀 HOW TO RUN:
+The subtasks you see depend on YOUR ENERGY:
+  🌙 Low = 3 subtasks (bare minimum)
+  ⚡ Medium = 5 subtasks (includes low + medium tasks)
+  🔥 High = 9 subtasks (includes all tasks)
 
-1. Open your terminal/command prompt
+🚀 GET STARTED
+==============
 
-2. Navigate to the conquer folder:
-   cd path/to/conquer
-
-3. Run the application:
+1. Start the app:
    python app.py
 
-4. Open your browser to:
+2. Open browser to:
    http://localhost:5000
 
-🎯 HOW THE TIERED SYSTEM WORKS:
+3. Browse Templates page
 
-BEFORE (old way):
-- "Clean kitchen" = one way to do it, pass/fail
+4. Pick a template (like "Clean the Kitchen")
 
-AFTER (new way):
-- 🔥 HIGH ENERGY: Load/unload dishwasher, wipe ALL counters, clean stove, 
-  scrub sink, trash out, sweep & mop (50 XP)
-  
-- ⚡ MEDIUM ENERGY: Load dishwasher, wipe main counters, clean stove, 
-  trash out, quick sweep (30 XP)
-  
-- 🌙 LOW ENERGY: Load dirty dishes (sink clear), wipe main counter, 
-  trash out (15 XP)
+5. Choose your energy level (be honest!)
 
-ALL THREE COUNT! The low energy version is NOT a failure - it's you 
-doing what you could with what you had. That deserves credit.
+6. Task appears on dashboard - click it!
 
-💡 GETTING STARTED:
+7. CHECK OFF SUBTASKS as you do them 📝✓
 
-1. Check out the DASHBOARD
-   - See your level, XP, streaks
-   - View Life Balance to see which categories need attention
-   - Browse sample tasks
+8. Complete quest when done (50%+ required)
 
-2. Click the ✓ on any task
-   - You'll see all three energy tiers
-   - Pick the one that matches what you actually did
-   - Earn XP and maintain your streak!
+9. Earn XP, maintain streak, feel good! 🎉
 
-3. Use QUEST SELECT
-   - Filter by your current energy (High/Medium/Low)
-   - Find tasks that match how you're feeling right now
-   - No pressure to do the "high energy" version
+💡 KEY FEATURES
+===============
 
-4. CREATE YOUR OWN TASKS
-   - Click "Add Task"
-   - Define all three tiers for your real tasks
-   - Assign to a life category
+✓ TEMPLATES: Create once, use forever
+  - 10 sample templates included
+  - Create your own with New Template
 
-🧠 THE ADHD/DEPRESSION DESIGN:
+✓ TIERED SUBTASKS: Adapt to your energy
+  - Level 1 = Low energy only
+  - Level 2 = Medium (includes L1)
+  - Level 3 = High (includes L1 + L2)
 
-- **Variable Energy**: Some days making tea is 1 step, some days it's 4. 
-  The system gets it.
+✓ MID-TASK UPGRADES: Finish and feel good?
+  - Click "Upgrade Tier" button
+  - Get more subtasks added!
+  - Keep the momentum going
 
-- **No All-or-Nothing**: Don't let perfect be the enemy of done. Low energy 
-  completion still earns XP and maintains your streak.
+✓ FLEXIBLE COMPLETION:
+  - Must complete 50%+ of subtasks
+  - Each checkbox = +2 bonus XP
+  - Low energy completion COUNTS for streak
 
-- **Category Balance**: See if you're neglecting self-care, social connection, 
-  or other life areas. No judgment - just awareness.
+✓ LIFE BALANCE: Track 8 categories
+  - Work, Coding, Cleaning, Adulting
+  - Doby (pet care), Social, Errands
+  - Self Care
 
-- **Choose When Completing**: Even if you filtered for "high energy" tasks, 
-  you can still pick the low energy version when completing if the task 
-  felt harder than expected.
+🎮 SAMPLE TEMPLATES INCLUDED
+=============================
 
-📊 UNDERSTANDING THE DASHBOARD:
+- Clean the Kitchen (9 tiered subtasks)
+- Morning Self-Care Routine (9 subtasks)
+- Doby Care Routine (8 subtasks)
+- Process Work Emails (8 subtasks)
+- Tidy Bedroom (8 subtasks)
+- Grocery Shopping (9 subtasks)
+- Connect with Friends/Family (7 subtasks)
+- Work on Coding Project (9 subtasks)
+- Exercise/Movement (7 subtasks)
+- Handle Paperwork/Admin (8 subtasks)
 
-- **Life Balance**: Shows tasks completed per category this week. Helps 
-  you see patterns - like "I did 5 work tasks but 0 self-care tasks"
+Try them out! Replace with your real tasks.
 
-- **Today's Completions**: Shows what tier you completed (High/Medium/Low) 
-  so you can track your energy patterns
+🧠 WHY THIS WORKS FOR ADHD
+===========================
 
-- **Streak**: Complete at least ONE task per day (any tier!) to maintain
+✓ Variable energy recognition
+  (Some days tea is 1 step, some days it's 4)
 
-🛠️ CUSTOMIZATION IDEAS:
+✓ Dopamine on demand
+  (Every checkbox, not just at the end)
 
-Sample tasks are there to help you understand the system. Replace them with:
+✓ No all-or-nothing thinking
+  (Low energy completion still counts!)
 
-- Your actual cleaning routines
-- Your real work tasks
-- Your specific self-care needs
-- Things you tend to forget (like Doby's nails!)
+✓ Visual progress
+  (Watch the progress bar fill up)
 
-For each task, think:
-- What's the IDEAL way to do this? (High)
-- What's the REALISTIC way? (Medium)  
-- What's the MINIMUM that still counts? (Low)
+✓ Flexible without overwhelming
+  (Start low, upgrade if you feel good)
 
-🔮 TIPS FOR SUCCESS:
+📝 QUICK TIPS
+=============
 
-1. Be honest about what tier you completed - the system only helps if 
-   you're real with yourself
+1. Be HONEST about energy
+   Pick what matches NOW, not what you wish
 
-2. On good days, aim for high energy versions to bank XP
+2. Low energy is VALID
+   Did the minimum? That's still progress!
 
-3. On rough days, celebrate the low energy wins - you showed up!
+3. Use the checkboxes
+   That's where the dopamine is!
 
-4. Use category balance to guide your task choices - pick from 
-   neglected areas
+4. Check category balance
+   Neglecting self-care? Pick from that category
 
-5. Don't forget Doby! (Or whatever tasks you typically avoid)
+5. Upgrade when motivated
+   Feeling good after finishing? Keep going!
 
-📝 REMEMBER:
+🎯 YOUR FIRST QUEST
+===================
 
-This isn't about productivity optimization. It's about sustainable progress
-that works WITH your brain, not against it. Some days you'll crush high
-energy tasks. Some days you'll barely manage low energy ones. Both are 
-valid. Both count. Both earn XP.
+1. Dashboard → Browse Templates
 
-Ready to start your quest? 🗡️✨
+2. Find "Morning Self-Care Routine"
+
+3. Pick 🌙 Low Energy
+
+4. Task opens with 3 subtasks:
+   ☐ Brush teeth
+   ☐ Take medications
+   ☐ Splash water on face
+
+5. Do them. Check them off. Feel good.
+
+6. Hit "Complete Quest"
+
+7. Earn XP. Start your streak.
+
+That's it! You just conquered your first quest.
+
+🗡️ Now go forth and conquer! ✨
 
 (Full documentation in README.md)

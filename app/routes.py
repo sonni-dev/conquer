@@ -50,6 +50,59 @@ def dashboard():
                          categories=CATEGORIES)
 
 
+@app.route('/templates')
+def templates_list():
+    category_filter = request.args.get('category')
+
+    query = TaskTemplate.query.filter_by(is_active=True)
+    if category_filter:
+        query = query.filter_by(category=category_filter)
+    
+    templates = query.all()
+
+    return render_template('templates.html',
+                           templates=templates,
+                           categories=CATEGORIES,
+                           selected_category=category_filter)
+
+
+@app.route('/template/create', methods=['GET', 'POST'])
+def create_template():
+    """Create a new task template"""
+    if request.method == 'POST':
+        # Create template
+        template = TaskTemplate(
+            title=request.form.get('title'),
+            category=request.form.get('category'),
+            task_type=request.form.get('task_type'),
+            effort_type=request.form.get('effort_type'),
+            location_type=request.form.get('location_type'),
+            base_xp_low=int(request.form.get('base_xp_low', 10)),
+            base_xp_medium=int(request.form.get('base_xp_medium', 20)),
+            base_xp_high=int(request.form.get('base_xp_high', 30))
+        )
+        
+        db.session.add(template)
+        db.session.flush()  # Get template.id
+
+        # Add subtasks
+        subtask_descriptions = request.form.getlist('subtask_description[]')
+        subtask_levels = request.form.getlist('subtask_level[]')
+
+        for i, (desc, level) in enumerate(zip(subtask_descriptions, subtask_levels)):
+            if desc.strip():  # Only add non-empty subtasks
+                subtask = SubTask(
+                    template_id=template.id,
+                    description=desc.strip(),
+                    level=int(level),
+                    order=i
+                )
+                db.session.add(subtask)
+        db.session.commit()
+        return redirect(url_for('templates_list'))
+    return render_template('create_template.html', categories=CATEGORIES)
+
+
 @app.route('/tasks')
 def tasks_view():
     """View and manage all tasks"""

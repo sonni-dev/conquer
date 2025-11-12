@@ -51,7 +51,7 @@ class UserProgress(db.Model):
 
 class TaskTemplate(db.Model):
     """Template for tasks that can be instantiated multiple times"""
-    __tablename__ = 'task_templates'
+    __tablename__ = 'task_template'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -91,13 +91,18 @@ class TaskTemplate(db.Model):
 
 class SubTask(db.Model):
     """Individual sub-task belonging to a template"""
-    __tablename__ = 'sub_tasks'
+    __tablename__ = 'subtask'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    template_id: Mapped[int] = mapped_column(Integer, ForeignKey('task_templates.id'), nullable=False)
+    template_id: Mapped[int] = mapped_column(Integer, ForeignKey('task_template.id'), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=False)
     level: Mapped[int] = mapped_column(Integer, nullable=False)  # 1, 2, or 3
     order: Mapped[int] = mapped_column(Integer, default=0)  # For display ordering
+
+    # For ease of access
+    template: Mapped['TaskTemplate'] = relationship(back_populates='subtasks')
+    completions: Mapped[List['SubTaskCompletion']] = relationship(back_populates='subtask', lazy=True, cascade='all, delete-orphan')
+    
 
     def __repr__(self) -> str:
         return f'<SubTask {self.description} (L{self.level})>'
@@ -105,10 +110,10 @@ class SubTask(db.Model):
 
 class TaskInstance(db.Model):
     """An instance of a template added to a specific day"""
-    __tablename__ = 'task_instances'
+    __tablename__ = 'task_instance'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    template_id: Mapped[int] = mapped_column(Integer, ForeignKey('task_templates.id'), nullable=False)
+    template_id: Mapped[int] = mapped_column(Integer, ForeignKey('task_template.id'), nullable=False)
     selected_tier: Mapped[int] = mapped_column(Integer, nullable=False)  # 1, 2, or 3
 
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=datetime.now(dt.timezone.utc))
@@ -117,6 +122,7 @@ class TaskInstance(db.Model):
 
     # Relationships
     subtask_completions: Mapped[List['SubTaskCompletion']] = relationship(back_populates='task_instance', lazy=True, cascade='all, delete-orphan')
+    template: Mapped['TaskTemplate'] = relationship(back_populates='instances')
 
 
     @property
@@ -150,16 +156,17 @@ class TaskInstance(db.Model):
 
 class SubTaskCompletion(db.Model):
     """Track completion of individual subtasks within a task instance"""
-    __tablename__ = 'subtask_completions'
+    __tablename__ = 'subtask_completion'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    task_instance_id: Mapped[int] = mapped_column(Integer, ForeignKey('task_instances.id'), nullable=False)
-    subtask_id: Mapped[int] = mapped_column(Integer, ForeignKey('subtasks.id'), nullable=False)
+    task_instance_id: Mapped[int] = mapped_column(Integer, ForeignKey('task_instance.id'), nullable=False)
+    subtask_id: Mapped[int] = mapped_column(Integer, ForeignKey('subtask.id'), nullable=False)
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
     completed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
 
-    # Relationship to subtask for easy access
-    subtask: Mapped['SubTask'] = relationship(back_populates='subtask_completion')
+    # Relationship to subtask & task instance for easy access
+    subtask: Mapped['SubTask'] = relationship(back_populates='completions')
+    task_instance: Mapped['TaskInstance'] = relationship(back_populates='subtask_completions')
 
     def toggle(self):
         """Toggle completion status"""
@@ -168,7 +175,9 @@ class SubTaskCompletion(db.Model):
 
 
 def init_db(app):
-    """Create tables and user if none"""
+    """Initialize db and Create tables and user if none"""
+    db.init_app(app)
+
     with app.app_context():
         db.create_all()
 

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Create Template - Conquer{% endblock %}
+
+{% block content %}
+<div class="create-template">
+    <h1>➕ Create Quest Template</h1>
+    <p class="subtitle">Define a template with tiered subtasks that you can reuse</p>
+    
+    <form method="POST" class="template-form" id="templateForm">
+        <!-- Basic Info -->
+        <div class="form-section">
+            <h3>Basic Information</h3>
+            
+            <div class="form-group">
+                <label for="title">Template Title *</label>
+                <input type="text" id="title" name="title" required 
+                       placeholder="e.g., Clean the kitchen">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="category">Category *</label>
+                    <select id="category" name="category" required>
+                        <option value="">Choose category...</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="task_type">Task Type *</label>
+                    <select id="task_type" name="task_type" required>
+                        <option value="">Choose type...</option>
+                        <option value="daily">📆 Daily</option>
+                        <option value="weekly">🔄 Weekly</option>
+                        <option value="bonus">⭐ Bonus</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="effort_type">Effort Type</label>
+                    <select id="effort_type" name="effort_type">
+                        <option value="">Choose...</option>
+                        <option value="physical">💪 Physical</option>
+                        <option value="mental">🧠 Mental</option>
+                        <option value="creative">🎨 Creative</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="location_type">Location</label>
+                    <select id="location_type" name="location_type">
+                        <option value="">Choose...</option>
+                        <option value="indoor">🏠 Indoor</option>
+                        <option value="outdoor">🌳 Outdoor</option>
+                        <option value="any">📍 Anywhere</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Base XP -->
+        <div class="form-section">
+            <h3>Base XP (Bonus XP awarded per completed subtask)</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="base_xp_low">🌙 Low Energy Base XP</label>
+                    <input type="number" id="base_xp_low" name="base_xp_low" value="10" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="base_xp_medium">⚡ Medium Energy Base XP</label>
+                    <input type="number" id="base_xp_medium" name="base_xp_medium" value="20" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="base_xp_high">🔥 High Energy Base XP</label>
+                    <input type="number" id="base_xp_high" name="base_xp_high" value="30" min="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- Subtasks -->
+        <div class="form-section">
+            <h3>Subtasks</h3>
+            <p class="help-text">
+                Level 1 = Low energy only<br>
+                Level 2 = Medium energy (includes Level 1)<br>
+                Level 3 = High energy (includes Levels 1 & 2)
+            </p>
+            
+            <div id="subtasks-container">
+                <!-- Subtasks will be added here -->
+            </div>
+            
+            <button type="button" class="btn-secondary" onclick="addSubtask()">
+                + Add Subtask
+            </button>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Create Template</button>
+            <a href="{{ url_for('templates_list') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+let subtaskCount = 0;
+
+function addSubtask() {
+    const container = document.getElementById('subtasks-container');
+    const subtaskDiv = document.createElement('div');
+    subtaskDiv.className = 'subtask-row';
+    subtaskDiv.innerHTML = `
+        <div class="subtask-fields">
+            <input type="text" 
+                   name="subtask_description[]" 
+                   placeholder="e.g., Load dirty dishes into dishwasher"
+                   required>
+            <select name="subtask_level[]" required>
+                <option value="1">Level 1 (Low)</option>
+                <option value="2">Level 2 (Medium)</option>
+                <option value="3">Level 3 (High)</option>
+            </select>
+            <button type="button" class="btn-remove" onclick="this.parentElement.parentElement.remove()">
+                ✕
+            </button>
+        </div>
+    `;
+    container.appendChild(subtaskDiv);
+    subtaskCount++;
+}
+
+// Add 3 subtasks by default
+document.addEventListener('DOMContentLoaded', function() {
+    addSubtask();
+    addSubtask();
+    addSubtask();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Template - Conquer{% endblock %}
+
+{% block content %}
+<div class="edit-template">
+    <h1>✏️ Edit Template: {{ template.title }}</h1>
+    
+    <form method="POST" class="template-form" id="templateForm">
+        <!-- Basic Info -->
+        <div class="form-section">
+            <h3>Basic Information</h3>
+            
+            <div class="form-group">
+                <label for="title">Template Title *</label>
+                <input type="text" id="title" name="title" required value="{{ template.title }}">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="category">Category *</label>
+                    <select id="category" name="category" required>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}" {% if template.category == cat %}selected{% endif %}>
+                            {{ cat }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="task_type">Task Type *</label>
+                    <select id="task_type" name="task_type" required>
+                        <option value="daily" {% if template.task_type == 'daily' %}selected{% endif %}>📆 Daily</option>
+                        <option value="weekly" {% if template.task_type == 'weekly' %}selected{% endif %}>🔄 Weekly</option>
+                        <option value="bonus" {% if template.task_type == 'bonus' %}selected{% endif %}>⭐ Bonus</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="effort_type">Effort Type</label>
+                    <select id="effort_type" name="effort_type">
+                        <option value="">Choose...</option>
+                        <option value="physical" {% if template.effort_type == 'physical' %}selected{% endif %}>💪 Physical</option>
+                        <option value="mental" {% if template.effort_type == 'mental' %}selected{% endif %}>🧠 Mental</option>
+                        <option value="creative" {% if template.effort_type == 'creative' %}selected{% endif %}>🎨 Creative</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="location_type">Location</label>
+                    <select id="location_type" name="location_type">
+                        <option value="">Choose...</option>
+                        <option value="indoor" {% if template.location_type == 'indoor' %}selected{% endif %}>🏠 Indoor</option>
+                        <option value="outdoor" {% if template.location_type == 'outdoor' %}selected{% endif %}>🌳 Outdoor</option>
+                        <option value="any" {% if template.location_type == 'any' %}selected{% endif %}>📍 Anywhere</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Base XP -->
+        <div class="form-section">
+            <h3>Base XP</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="base_xp_low">🌙 Low Energy Base XP</label>
+                    <input type="number" id="base_xp_low" name="base_xp_low" value="{{ template.base_xp_low }}" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="base_xp_medium">⚡ Medium Energy Base XP</label>
+                    <input type="number" id="base_xp_medium" name="base_xp_medium" value="{{ template.base_xp_medium }}" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="base_xp_high">🔥 High Energy Base XP</label>
+                    <input type="number" id="base_xp_high" name="base_xp_high" value="{{ template.base_xp_high }}" min="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- Subtasks -->
+        <div class="form-section">
+            <h3>Subtasks</h3>
+            <p class="help-text">
+                Level 1 = Low energy only<br>
+                Level 2 = Medium energy (includes Level 1)<br>
+                Level 3 = High energy (includes Levels 1 & 2)
+            </p>
+            
+            <div id="subtasks-container">
+                {% for subtask in template.subtasks %}
+                <div class="subtask-row">
+                    <div class="subtask-fields">
+                        <input type="text" 
+                               name="subtask_description[]" 
+                               value="{{ subtask.description }}"
+                               required>
+                        <select name="subtask_level[]" required>
+                            <option value="1" {% if subtask.level == 1 %}selected{% endif %}>Level 1 (Low)</option>
+                            <option value="2" {% if subtask.level == 2 %}selected{% endif %}>Level 2 (Medium)</option>
+                            <option value="3" {% if subtask.level == 3 %}selected{% endif %}>Level 3 (High)</option>
+                        </select>
+                        <button type="button" class="btn-remove" onclick="this.parentElement.parentElement.remove()">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" class="btn-secondary" onclick="addSubtask()">
+                + Add Subtask
+            </button>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <a href="{{ url_for('templates_list') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function addSubtask() {
+    const container = document.getElementById('subtasks-container');
+    const subtaskDiv = document.createElement('div');
+    subtaskDiv.className = 'subtask-row';
+    subtaskDiv.innerHTML = `
+        <div class="subtask-fields">
+            <input type="text" 
+                   name="subtask_description[]" 
+                   placeholder="e.g., Load dirty dishes into dishwasher"
+                   required>
+            <select name="subtask_level[]" required>
+                <option value="1">Level 1 (Low)</option>
+                <option value="2">Level 2 (Medium)</option>
+                <option value="3">Level 3 (High)</option>
+            </select>
+            <button type="button" class="btn-remove" onclick="this.parentElement.parentElement.remove()">
+                ✕
+            </button>
+        </div>
+    `;
+    container.appendChild(subtaskDiv);
+}
+</script>
+{% endblock %}

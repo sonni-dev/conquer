@@ -8,37 +8,37 @@
     <div class="progress-section">
         <div class="level-card">
             <div class="level-badge">
-                <span class="level-number">{{ progress.current_level }}</span>
+                <span class="level-number">{{ user.current_level }}</span>
                 <span class="level-label">Level</span>
             </div>
             <div class="xp-container">
                 <div class="xp-bar-bg">
-                    <div class="xp-bar-fill" style="width: {{ xp_progress_percent }}%"></div>
+                    <div class="xp-bar-fill" style="width: {{ user.xp_progress_percent() }}%"></div>
                 </div>
-                <div class="xp-text">{{ progress.total_xp % 100 }} / 100 XP</div>
-                <div class="xp-next">{{ xp_needed }} XP to Level {{ progress.current_level + 1 }}</div>
+                <div class="xp-text">{{ user.total_xp % 100 }} / 100 XP</div>
+                <div class="xp-next">{{ user.xp_for_next_level() }} XP to Level {{ user.current_level + 1 }}</div>
             </div>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-icon">🔥</div>
-                <div class="stat-value">{{ progress.current_streak }}</div>
+                <div class="stat-value">{{ user.current_streak }}</div>
                 <div class="stat-label">Day Streak</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">🏆</div>
-                <div class="stat-value">{{ progress.longest_streak }}</div>
+                <div class="stat-value">{{ user.longest_streak }}</div>
                 <div class="stat-label">Best Streak</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">✅</div>
-                <div class="stat-value">{{ progress.tasks_completed }}</div>
+                <div class="stat-value">{{ user.tasks_completed }}</div>
                 <div class="stat-label">Total Completed</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">📅</div>
-                <div class="stat-value">{{ weekly_stats.completions or 0 }}</div>
+                <div class="stat-value">{{ weekly_completions }}</div>
                 <div class="stat-label">This Week</div>
             </div>
         </div>
@@ -63,27 +63,41 @@
         </div>
     </div>
 
-    <!-- Today's Completions -->
-    {% if todays_completions %}
-    <div class="completions-section">
-        <h2>✨ Completed Today</h2>
-        <div class="completions-list">
-            {% for completion in todays_completions %}
-            <div class="completion-item">
-                <span class="completion-check">✓</span>
-                <div class="completion-info">
-                    <span class="completion-title">{{ completion.title }}</span>
-                    <span class="completion-category">{{ completion.category }}</span>
+    <!-- Active Tasks -->
+    {% if active_tasks %}
+    <div class="active-tasks-section">
+        <h2>📋 Today's Active Quests</h2>
+        <div class="task-instances-list">
+            {% for instance in active_tasks %}
+            {% set status = instance.get_completion_status() %}
+            <div class="task-instance-card">
+                <div class="instance-header">
+                    <div class="instance-title-area">
+                        <h3>{{ instance.template.title }}</h3>
+                        <span class="instance-category">{{ instance.template.category }}</span>
+                    </div>
+                    <div class="instance-tier-badge tier-{{ instance.selected_tier }}">
+                        {% if instance.selected_tier == 3 %}
+                        🔥 High
+                        {% elif instance.selected_tier == 2 %}
+                        ⚡ Medium
+                        {% else %}
+                        🌙 Low
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="completion-meta">
-                    {% if completion.tier_completed == 'high' %}
-                    <span class="tier-badge high">🔥 High</span>
-                    {% elif completion.tier_completed == 'medium' %}
-                    <span class="tier-badge medium">⚡ Medium</span>
-                    {% else %}
-                    <span class="tier-badge low">🌙 Low</span>
-                    {% endif %}
-                    <span class="completion-points">+{{ completion.points_earned }} XP</span>
+                
+                <div class="instance-progress">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: {{ status.percentage }}%"></div>
+                    </div>
+                    <span class="progress-text">{{ status.completed }} / {{ status.total }} subtasks</span>
+                </div>
+                
+                <div class="instance-actions">
+                    <a href="{{ url_for('task_detail', instance_id=instance.id) }}" class="btn-primary">
+                        Continue Quest
+                    </a>
                 </div>
             </div>
             {% endfor %}
@@ -91,99 +105,43 @@
     </div>
     {% endif %}
 
-    <!-- Quick Quest Select -->
-    <div class="quick-select">
-        <h2>🎯 Quick Quest Select</h2>
-        <p class="subtitle">Choose quests based on how you're feeling:</p>
-        <div class="mood-buttons">
-            <a href="{{ url_for('quest_select') }}?energy=high" class="mood-btn high-energy">
-                🔥 High Energy
-            </a>
-            <a href="{{ url_for('quest_select') }}?energy=medium" class="mood-btn medium-energy">
-                ⚡ Medium Energy
-            </a>
-            <a href="{{ url_for('quest_select') }}?energy=low" class="mood-btn low-energy">
-                🌙 Low Energy
-            </a>
+    <!-- Completed Tasks Today -->
+    {% if completed_tasks %}
+    <div class="completions-section">
+        <h2>✨ Completed Today</h2>
+        <div class="completions-list">
+            {% for instance in completed_tasks %}
+            {% set status = instance.get_completion_status() %}
+            <div class="completion-item">
+                <span class="completion-check">✓</span>
+                <div class="completion-info">
+                    <span class="completion-title">{{ instance.template.title }}</span>
+                    <span class="completion-category">{{ instance.template.category }}</span>
+                    <span class="completion-subtasks">{{ status.completed }}/{{ status.total }} subtasks</span>
+                </div>
+                <div class="completion-meta">
+                    {% if instance.selected_tier == 3 %}
+                    <span class="tier-badge high">🔥 High</span>
+                    {% elif instance.selected_tier == 2 %}
+                    <span class="tier-badge medium">⚡ Medium</span>
+                    {% else %}
+                    <span class="tier-badge low">🌙 Low</span>
+                    {% endif %}
+                    <span class="completion-points">+{{ instance.xp_earned }} XP</span>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
+    {% endif %}
 
-    <!-- Task Overview -->
-    <div class="tasks-overview">
-        <div class="task-category">
-            <h3>📆 Daily Tasks <span class="task-count">{{ daily_tasks|length }}</span></h3>
-            <div class="task-list">
-                {% for task in daily_tasks[:5] %}
-                <div class="task-item">
-                    <div class="task-info">
-                        <div class="task-title">{{ task.title }}</div>
-                        <div class="task-subtitle">{{ task.category }}</div>
-                        <div class="task-tags">
-                            {% if task.effort_type %}
-                            <span class="tag tag-effort">{{ task.effort_type }}</span>
-                            {% endif %}
-                            {% if task.location_type %}
-                            <span class="tag tag-location">{{ task.location_type }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="task-actions">
-                        <span class="task-points-range">{{ task.low_points }}-{{ task.high_points }} XP</span>
-                        <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn-complete">✓</a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="task-category">
-            <h3>🔄 Weekly Tasks <span class="task-count">{{ weekly_tasks|length }}</span></h3>
-            <div class="task-list">
-                {% for task in weekly_tasks[:5] %}
-                <div class="task-item">
-                    <div class="task-info">
-                        <div class="task-title">{{ task.title }}</div>
-                        <div class="task-subtitle">{{ task.category }}</div>
-                        <div class="task-tags">
-                            {% if task.effort_type %}
-                            <span class="tag tag-effort">{{ task.effort_type }}</span>
-                            {% endif %}
-                            {% if task.location_type %}
-                            <span class="tag tag-location">{{ task.location_type }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="task-actions">
-                        <span class="task-points-range">{{ task.low_points }}-{{ task.high_points }} XP</span>
-                        <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn-complete">✓</a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="task-category">
-            <h3>⭐ Bonus Tasks <span class="task-count">{{ bonus_tasks|length }}</span></h3>
-            <div class="task-list">
-                {% for task in bonus_tasks[:5] %}
-                <div class="task-item">
-                    <div class="task-info">
-                        <div class="task-title">{{ task.title }}</div>
-                        <div class="task-subtitle">{{ task.category }}</div>
-                        <div class="task-tags">
-                            {% if task.effort_type %}
-                            <span class="tag tag-effort">{{ task.effort_type }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="task-actions">
-                        <span class="task-points-range">{{ task.low_points }}-{{ task.high_points }} XP</span>
-                        <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn-complete">✓</a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
+    <!-- Quick Add -->
+    <div class="quick-add-section">
+        <h2>➕ Add Quest to Today</h2>
+        <p class="subtitle">Pick a template and choose your energy level</p>
+        <a href="{{ url_for('templates_list') }}" class="btn-primary btn-large">
+            Browse Templates
+        </a>
     </div>
 </div>
 

@@ -1,242 +1,282 @@
-from database import init_db, add_task
+from app import app
+from models import db, TaskTemplate, SubTask
 
-def populate_sample_tasks():
-    """Add tiered sample tasks across all categories"""
+def populate_sample_templates():
+    """Add sample task templates with tiered subtasks"""
     
-    sample_tasks = [
-        # Work
-        {
-            'title': 'Check and respond to emails',
-            'task_type': 'daily',
-            'category': 'Work',
-            'high_description': 'Check all emails, respond to everything, organize inbox, file away completed threads, set up filters',
-            'high_points': 30,
-            'medium_description': 'Check emails, respond to urgent ones, flag others for later',
-            'medium_points': 20,
-            'low_description': 'Check for urgent emails only, send quick replies',
-            'low_points': 10,
-            'effort_type': 'mental',
-            'location_type': 'any'
-        },
-        
-        # Coding / Personal Projects
-        {
-            'title': 'Work on coding project',
-            'task_type': 'weekly',
-            'category': 'Coding / Personal Projects',
-            'high_description': 'Complete a full feature or significant refactor, write tests, update documentation',
-            'high_points': 50,
-            'medium_description': 'Make progress on current feature, commit changes',
-            'medium_points': 30,
-            'low_description': 'Review code, fix one small bug, or plan next steps',
-            'low_points': 15,
-            'effort_type': 'mental',
-            'location_type': 'indoor'
-        },
-        
+    templates_data = [
         # Cleaning - Kitchen
         {
-            'title': 'Clean the kitchen',
+            'title': 'Clean the Kitchen',
+            'category': 'Cleaning',
             'task_type': 'daily',
-            'category': 'Cleaning',
-            'high_description': 'Load & unload dishwasher, wipe all counters & backsplash, clean stove top & knobs, scrub sink, take out trash & recycling, sweep & mop floor',
-            'high_points': 50,
-            'medium_description': 'Load dishwasher, wipe main counters, clean stove, take out trash, quick sweep',
-            'medium_points': 30,
-            'low_description': 'Load dirty dishes into dishwasher (sink clear), wipe main counter, take out trash',
-            'low_points': 15,
             'effort_type': 'physical',
-            'location_type': 'indoor'
+            'location_type': 'indoor',
+            'base_xp_low': 15,
+            'base_xp_medium': 30,
+            'base_xp_high': 50,
+            'subtasks': [
+                ('Load dirty dishes into dishwasher', 1),
+                ('Wipe down main counter', 1),
+                ('Take out trash', 1),
+                ('Wipe stove top', 2),
+                ('Quick sweep floor', 2),
+                ('Wipe all counters and backsplash', 3),
+                ('Unload clean dishwasher', 3),
+                ('Scrub sink thoroughly', 3),
+                ('Mop floor', 3),
+            ]
         },
         
-        # Cleaning - General
+        # Self Care - Morning Routine
         {
-            'title': 'Tidy living space',
-            'task_type': 'weekly',
-            'category': 'Cleaning',
-            'high_description': 'Pick up everything, vacuum all rooms, dust all surfaces, clean mirrors, organize clutter into proper places',
-            'high_points': 45,
-            'medium_description': 'Pick up main areas, vacuum high-traffic areas, quick dust',
-            'medium_points': 25,
-            'low_description': 'Pick up visible clutter, quick vacuum one room',
-            'low_points': 12,
+            'title': 'Morning Self-Care Routine',
+            'category': 'Self Care',
+            'task_type': 'daily',
             'effort_type': 'physical',
-            'location_type': 'indoor'
+            'location_type': 'indoor',
+            'base_xp_low': 10,
+            'base_xp_medium': 20,
+            'base_xp_high': 30,
+            'subtasks': [
+                ('Brush teeth', 1),
+                ('Take medications', 1),
+                ('Splash water on face', 1),
+                ('Wash face properly', 2),
+                ('Change into clean clothes', 2),
+                ('Moisturize face', 2),
+                ('Take a full shower', 3),
+                ('Style hair', 3),
+                ('Put on outfit (not just any clothes)', 3),
+            ]
         },
         
-        # Adulting
+        # Doby Care
         {
-            'title': 'Handle important paperwork',
+            'title': 'Doby Care Routine',
+            'category': 'Doby',
             'task_type': 'weekly',
-            'category': 'Adulting',
-            'high_description': 'Complete forms, make necessary calls, scan & file documents, follow up on pending items, update tracking spreadsheet',
-            'high_points': 40,
-            'medium_description': 'Complete the most urgent task, make one important call',
-            'medium_points': 25,
-            'low_description': 'Open the paperwork, read through what needs to be done, gather necessary info',
-            'low_points': 10,
+            'effort_type': 'physical',
+            'location_type': 'indoor',
+            'base_xp_low': 12,
+            'base_xp_medium': 25,
+            'base_xp_high': 45,
+            'subtasks': [
+                ('Quick brush', 1),
+                ('Fill water bowl', 1),
+                ('Thorough brushing', 2),
+                ('Check and trim nails if needed', 2),
+                ('Give bath with proper shampoo', 3),
+                ('Clean ears', 3),
+                ('Brush teeth', 3),
+                ('Check for fleas/ticks', 3),
+            ]
+        },
+        
+        # Work - Email Management
+        {
+            'title': 'Process Work Emails',
+            'category': 'Work',
+            'task_type': 'daily',
             'effort_type': 'mental',
-            'location_type': 'any'
+            'location_type': 'any',
+            'base_xp_low': 10,
+            'base_xp_medium': 20,
+            'base_xp_high': 35,
+            'subtasks': [
+                ('Check for urgent emails', 1),
+                ('Reply to 1-2 most urgent', 1),
+                ('Scan through inbox', 2),
+                ('Reply to priority emails', 2),
+                ('Flag emails for later', 2),
+                ('Reply to all emails needing response', 3),
+                ('Organize inbox with filters/folders', 3),
+                ('Clear out old emails', 3),
+            ]
         },
         
-        # Doby (Pet Care)
+        # Cleaning - Bedroom
         {
-            'title': 'Doby care routine',
-            'task_type': 'daily',
-            'category': 'Doby',
-            'high_description': 'Bath with proper shampoo, brush thoroughly, trim nails, clean teeth, check ears, treat for fleas if needed',
-            'high_points': 45,
-            'medium_description': 'Quick brush, check nails, clean teeth',
-            'medium_points': 25,
-            'low_description': 'Quick brush or pets and belly rubs',
-            'low_points': 10,
+            'title': 'Tidy Bedroom',
+            'category': 'Cleaning',
+            'task_type': 'weekly',
             'effort_type': 'physical',
-            'location_type': 'indoor'
+            'location_type': 'indoor',
+            'base_xp_low': 12,
+            'base_xp_medium': 25,
+            'base_xp_high': 40,
+            'subtasks': [
+                ('Make the bed', 1),
+                ('Pick up clothes from floor', 1),
+                ('Put away items on nightstand', 2),
+                ('Vacuum or sweep floor', 2),
+                ('Dust surfaces', 2),
+                ('Change bedsheets', 3),
+                ('Organize closet', 3),
+                ('Clean under bed', 3),
+            ]
         },
         
+        # Errands - Grocery Shopping
         {
-            'title': 'Walk Doby',
-            'task_type': 'daily',
-            'category': 'Doby',
-            'high_description': '30+ minute walk, explore new areas, practice training commands, play fetch',
-            'high_points': 35,
-            'medium_description': '20 minute walk around neighborhood',
-            'medium_points': 20,
-            'low_description': 'Quick 10 minute potty break outside',
-            'low_points': 10,
+            'title': 'Grocery Shopping',
+            'category': 'Errands',
+            'task_type': 'weekly',
             'effort_type': 'physical',
-            'location_type': 'outdoor'
+            'location_type': 'outdoor',
+            'base_xp_low': 15,
+            'base_xp_medium': 30,
+            'base_xp_high': 45,
+            'subtasks': [
+                ('Grab milk, bread, and essentials', 1),
+                ('Quick checkout', 1),
+                ('Check what you need at home first', 2),
+                ('Make a basic list', 2),
+                ('Shop for items on list', 2),
+                ('Plan meals for the week', 3),
+                ('Make detailed list organized by store sections', 3),
+                ('Shop deliberately with list', 3),
+                ('Put everything away properly at home', 3),
+            ]
         },
         
         # Social
         {
-            'title': 'Connect with friends/family',
-            'task_type': 'weekly',
+            'title': 'Connect with Friends/Family',
             'category': 'Social',
-            'high_description': 'Have a video call or in-person meetup, have real conversation for 30+ minutes',
-            'high_points': 40,
-            'medium_description': 'Have a phone call, text conversation, or voice message exchange',
-            'medium_points': 25,
-            'low_description': 'Send a text to check in or reply to messages',
-            'low_points': 12,
-            'effort_type': 'mental',
-            'location_type': 'any'
-        },
-        
-        # Errands
-        {
-            'title': 'Grocery shopping',
             'task_type': 'weekly',
-            'category': 'Errands',
-            'high_description': 'Make meal plan, create detailed list, shop for full week, put everything away properly',
-            'high_points': 40,
-            'medium_description': 'Shop from existing list, get essentials, put most things away',
-            'medium_points': 25,
-            'low_description': 'Grab the absolute essentials (milk, bread, etc), quick trip',
-            'low_points': 15,
-            'effort_type': 'physical',
-            'location_type': 'outdoor'
+            'effort_type': 'mental',
+            'location_type': 'any',
+            'base_xp_low': 12,
+            'base_xp_medium': 25,
+            'base_xp_high': 40,
+            'subtasks': [
+                ('Send a text to check in', 1),
+                ('Reply to messages', 1),
+                ('Have a phone call or voice chat', 2),
+                ('Have a real conversation (15+ min)', 2),
+                ('Make plans to meet up', 3),
+                ('Video call or meet in person', 3),
+                ('Do an activity together', 3),
+            ]
         },
         
-        # Self Care
+        # Coding Project
         {
-            'title': 'Morning self-care routine',
-            'task_type': 'daily',
-            'category': 'Self Care',
-            'high_description': 'Shower, wash face, brush teeth, take meds, moisturize, get dressed in real clothes',
-            'high_points': 30,
-            'medium_description': 'Wash face, brush teeth, take meds, change into clean clothes',
-            'medium_points': 20,
-            'low_description': 'Brush teeth, take meds',
-            'low_points': 10,
-            'effort_type': 'physical',
-            'location_type': 'indoor'
+            'title': 'Work on Coding Project',
+            'category': 'Coding / Personal Projects',
+            'task_type': 'weekly',
+            'effort_type': 'mental',
+            'location_type': 'indoor',
+            'base_xp_low': 15,
+            'base_xp_medium': 30,
+            'base_xp_high': 55,
+            'subtasks': [
+                ('Open project and review code', 1),
+                ('Fix one small bug', 1),
+                ('Plan next feature or improvement', 2),
+                ('Write some code (30+ min)', 2),
+                ('Test changes', 2),
+                ('Complete a full feature', 3),
+                ('Write tests for new code', 3),
+                ('Update documentation', 3),
+                ('Commit and push changes', 3),
+            ]
         },
         
-        {
-            'title': 'Drink water throughout day',
-            'task_type': 'daily',
-            'category': 'Self Care',
-            'high_description': 'Drink 8+ glasses of water, track intake, drink consistently throughout the day',
-            'high_points': 20,
-            'medium_description': 'Drink 5-6 glasses of water',
-            'medium_points': 15,
-            'low_description': 'Drink at least 3 glasses of water',
-            'low_points': 10,
-            'effort_type': 'physical',
-            'location_type': 'any'
-        },
-        
+        # Self Care - Exercise
         {
             'title': 'Exercise/Movement',
+            'category': 'Self Care',
             'task_type': 'daily',
-            'category': 'Self Care',
-            'high_description': '30+ minute workout at gym or full home routine with warmup and cooldown',
-            'high_points': 40,
-            'medium_description': '15-20 minute workout, walk, or yoga session',
-            'medium_points': 25,
-            'low_description': '10 minute walk or simple stretching',
-            'low_points': 12,
             'effort_type': 'physical',
-            'location_type': 'any'
+            'location_type': 'any',
+            'base_xp_low': 10,
+            'base_xp_medium': 25,
+            'base_xp_high': 40,
+            'subtasks': [
+                ('Do some stretches (5 min)', 1),
+                ('Take a short walk (10 min)', 1),
+                ('Do a quick workout (15-20 min)', 2),
+                ('Go for a longer walk (20-30 min)', 2),
+                ('Full workout at gym or home (30+ min)', 3),
+                ('Include warmup and cooldown', 3),
+                ('Try a new exercise or class', 3),
+            ]
         },
         
-        # Bonus tasks
+        # Adulting
         {
-            'title': 'Meal prep for the week',
-            'task_type': 'bonus',
-            'category': 'Self Care',
-            'high_description': 'Plan full week of meals, shop for ingredients, prep and portion all meals, clean up kitchen',
-            'high_points': 60,
-            'medium_description': 'Prep 3-4 meals, simple recipes, some portioning',
-            'medium_points': 35,
-            'low_description': 'Prep 1-2 simple meals or snacks',
-            'low_points': 20,
-            'effort_type': 'physical',
-            'location_type': 'indoor'
-        },
-        
-        {
-            'title': 'Practice hobby or learning',
-            'task_type': 'bonus',
-            'category': 'Coding / Personal Projects',
-            'high_description': 'Dedicate 2+ hours to learning something new, complete tutorials, practice deliberately',
-            'high_points': 50,
-            'medium_description': 'Spend 30-60 minutes on hobby or skill development',
-            'medium_points': 30,
-            'low_description': 'Watch a tutorial or read about something interesting for 15 minutes',
-            'low_points': 15,
+            'title': 'Handle Important Paperwork/Admin',
+            'category': 'Adulting',
+            'task_type': 'weekly',
             'effort_type': 'mental',
-            'location_type': 'any'
-        }
+            'location_type': 'any',
+            'base_xp_low': 10,
+            'base_xp_medium': 25,
+            'base_xp_high': 45,
+            'subtasks': [
+                ('Open the mail/emails', 1),
+                ('Read through what needs attention', 1),
+                ('Make one important phone call', 2),
+                ('Fill out one form or document', 2),
+                ('Complete all pending forms', 3),
+                ('Make all necessary calls', 3),
+                ('Scan and file documents properly', 3),
+                ('Update tracking spreadsheet', 3),
+            ]
+        },
     ]
     
-    # Add all tasks
-    for task in sample_tasks:
-        add_task(
-            title=task['title'],
-            task_type=task['task_type'],
-            category=task['category'],
-            high_description=task['high_description'],
-            high_points=task['high_points'],
-            medium_description=task['medium_description'],
-            medium_points=task['medium_points'],
-            low_description=task['low_description'],
-            low_points=task['low_points'],
-            effort_type=task.get('effort_type'),
-            location_type=task.get('location_type')
-        )
+    print("Creating sample templates...")
     
-    print(f"✅ Added {len(sample_tasks)} tiered sample tasks!")
-    print("\nTasks by category:")
+    for template_data in templates_data:
+        # Create template
+        template = TaskTemplate(
+            title=template_data['title'],
+            category=template_data['category'],
+            task_type=template_data['task_type'],
+            effort_type=template_data.get('effort_type'),
+            location_type=template_data.get('location_type'),
+            base_xp_low=template_data['base_xp_low'],
+            base_xp_medium=template_data['base_xp_medium'],
+            base_xp_high=template_data['base_xp_high']
+        )
+        
+        db.session.add(template)
+        db.session.flush()  # Get template ID
+        
+        # Add subtasks
+        for order, (description, level) in enumerate(template_data['subtasks']):
+            subtask = SubTask(
+                template_id=template.id,
+                description=description,
+                level=level,
+                order=order
+            )
+            db.session.add(subtask)
+        
+        print(f"  ✓ Created: {template.title} ({len(template_data['subtasks'])} subtasks)")
+    
+    db.session.commit()
+    
+    print(f"\n✅ Successfully created {len(templates_data)} templates!")
+    print("\nTemplates by category:")
     categories = {}
-    for task in sample_tasks:
-        cat = task['category']
+    for t in templates_data:
+        cat = t['category']
         categories[cat] = categories.get(cat, 0) + 1
     
     for cat, count in sorted(categories.items()):
-        print(f"   {cat}: {count} tasks")
+        print(f"   {cat}: {count} templates")
+
 
 if __name__ == '__main__':
-    init_db()
-    populate_sample_tasks()
+    with app.app_context():
+        # Create all tables
+        db.create_all()
+        
+        # Populate templates
+        populate_sample_templates()
+        
+        print("\n🗡️ Conquer is ready! Run 'python app.py' to start.")

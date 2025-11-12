@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from datetime import datetime, date, timedelta
+import datetime as dt
 from app import app, db
 from app.models import (
     init_db, get_or_create_user, 
@@ -174,138 +175,274 @@ def add_task_from_template(template_id):
     })
 
 
-@app.route('/tasks')
-def tasks_view():
-    """View and manage all tasks"""
+@app.route('/task/<int:instance_id>')
+def task_detail(instance_id):
+    """View task instance with subtasks"""
+    instance = TaskInstance.query.get_or_404(instance_id)
+    return render_template('tasks_detail.html', instance=instance)
+
+
+@app.route('/task/<int:instance_id>/toggle-subtask/<int:completion_id>', methods=['POST'])
+def toggle_subtask(instance_id, completion_id):
+    """Toggle a subtask completion"""
+    instance = TaskInstance.query.get_or_404(instance_id)
+    completion = SubTaskCompletion.query.get_or_404(completion_id)
+
+    if completion.task_instance_id != instance.id:
+        return jsonify({'success': False, 'message': 'Invalid subtask'}), 400
     
-    effort_filter = request.args.get('effort')
-    location_filter = request.args.get('location')
-    category_filter = request.args.get('category')
+    completion.toggle()
+    db.session.commit()
 
-    filters = {}
-    if effort_filter:
-        filters['effort_type'] = effort_filter
-    if location_filter:
-        filters['location_type'] = location_filter
-    # if energy_filter:
-    #     filters['energy_level'] = energy_filter
+    # Check completion status
+    status = instance.get_completion_status()
+
+    return jsonify({
+        'success': True,
+        'completed': completion.completed,
+        'status': status,
+        'can_upgrade': instance.can_upgrade_tier()
+    })
+
+
+@app.route('/task/<int:instance_id>/upgrade-tier', methods=['POST'])
+def upgrade_tier(instance_id):
+    """Upgrade task to next tier if all current subtasks complete"""
+    instance = TaskInstance.query.get_or_404(instance_id)
+
+    if not instance.can_upgrade_tier():
+        return jsonify({'success': False, 'message': 'Complete all subtasks first'}), 400
     
-
-    tasks = get_tasks(category=category_filter, filters=filters if filters else None)
-
-    return render_template('tasks.html',
-                           tasks=tasks,
-                           current_filters=filters,
-                           categories=CATEGORIES,
-                           selected_category=category_filter)
-
-
-@app.route('/add_task', methods=['GET', 'POST'])
-def add_task_view():
-    """Add a new task"""
-
-    if request.method == 'POST':
-        title = request.form.get('title')
-        task_type = request.form.get('task_type')
-        category = request.form.get('category')
-        
-        # High tier
-        high_description = request.form.get('high_description')
-        high_points = int(request.form.get('high_points'))
-        
-        # Medium tier
-        medium_description = request.form.get('medium_description')
-        medium_points = int(request.form.get('medium_points'))
-        
-        # Low tier
-        low_description = request.form.get('low_description')
-        low_points = int(request.form.get('low_points'))
-        
-        effort_type = request.form.get('effort_type')
-        location_type = request.form.get('location_type')
-        
-        add_task(title, task_type, category,
-                high_description, high_points,
-                medium_description, medium_points,
-                low_description, low_points,
-                effort_type, location_type)
-        
-        return redirect(url_for('dashboard'))
+    if instance.selected_tier >=3:
+        return jsonify({'success': False, 'message': 'Already at maximum tier'}), 400
     
-    return render_template('add_task.html', categories=CATEGORIES)
+    # Upgrade tier
+    instance.selected_tier += 1
 
+    # Add new subtasks for this tier
+    available_subtasks = instance.template.get_subtasks_for_tier(instance.selected_tier)
+    existing_subtask_ids = [sc.subtask.id for sc in instance.subtask_completions]
 
-@app.route('/task/<int:task_id>')
-def task_detail(task_id):
-    """Show task detail w tier selection for completion"""
-    task = get_task_by_id(task_id)
-    if not task:
-        return "Task not found", 404
+    for subtask in available_subtasks:
+        if subtask.id not in existing_subtask_ids:
+            completion = SubTaskCompletion(
+                task_instance_id=instance.id,
+                subtask_id=subtask.id,
+                completed=False
+            )
+            db.session.add(completion)
     
-    return render_template('tasks_detail.html', task=task)
+    db.session.commit()
+
+    tier_names = {
+        1: 'Low',
+        2: 'Medium',
+        3: 'High'
+    }
+    return jsonify({
+        'success': True,
+        'message': f'Upgraded to {tier_names[instance.selected_tier]} Energy!',
+        'new_tier': instance.selected_tier
+    })
 
 
-@app.route('/complete_task/<int:task_id>', methods=['POST'])
-def complete_task_route(task_id):
-    """Mark a task complete w selected tier"""
+@app.route('/task/<int:instance_id>/complete', methods=['POST'])
+def complete_task(instance_id):
+    """Mark task as complete and award XP"""
+    instance = TaskInstance.query.get_or_404(instance_id)
 
-    data = request.get_json()
-    tier = data.get('tier', 'low')  # Default to low if not specified
-
-    task = get_task_by_id(task_id)
-
-    if task:
-        # Get points based on tier
-        if tier == 'high':
-            points = task['high_points']
-        elif tier == 'medium':
-            points = task['medium_points']
-        else:
-            points = task['low_points']
-        
-        complete_task(task_id, tier, points)
-        
-        tier_emoji = {'high': '🔥', 'medium': '⚡', 'low': '🌙'}
+    if instance.is_completed:
         return jsonify({
-            'success': True, 
-            'message': f'Quest completed! {tier_emoji.get(tier, "")} {tier.upper()} tier +{points} XP'
-        })
+            'success': False,
+            'message': 'Task already completed'
+        }), 400
     
-    return jsonify({'success': False, 'message': 'Task not found'}), 404
-
-
-@app.route('/quest_select')
-def quest_select():
-    """Quest selection interface based on mood/energy"""
-    energy_filter = request.args.get('energy')
-    category_filter = request.args.get('category')
+    # Check if at least 50% of subtasks are done
+    status = instance.get_completion_status()
+    if status['percentage'] < 50:
+        return jsonify({
+            'success': False, 
+            'message': f'Complete at least 50% of subtasks ({status["completed"]}/{status["total"]})'
+        }), 400
     
-    return render_template('quest_select.html', 
-                         categories=CATEGORIES,
-                         selected_energy=energy_filter,
-                         selected_category=category_filter)
+    # Calculate XP
+    xp_earned = instance.template.calculate_xp(
+        instance.selected_tier,
+        status['completed']
+    )
 
+    instance.completed_at = dt.datetime.now(dt.timezone.utc)
+    instance.xp_earned = xp_earned
 
-@app.route('/api/tasks/filter', methods=['POST'])
-def filter_tasks():
-    """API endpoint to filter tasks based on current state"""
+    # Update user progress
+    user = get_or_create_user()
+    user.total_xp += xp_earned
+    user.tasks_completed += 1
 
-    data = request.get_json()
+    # Update level
+    new_level = user.calculate_level()
+    leveled_up = new_level > user.current_level
+    user.current_level = new_level
 
-    filters = {}
-    if data.get('effort_type'):
-        filters['effort_type'] = data['effort_type']
-    if data.get('location_type'):
-        filters['location_type'] = data['location_type']
+    # Update streak
+    today = date.today()
+    if user.last_completion_date:
+        days_diff = (today - user.last_completion_date).days
+        if days_diff == 0:
+            pass  # Same day, no streak change
+        elif days_diff == 1:
+            user.current_streak += 1
+            if user.current_streak > user.longest_streak:
+                user.longest_streak = user.current_streak
+        else:
+            user.current_streak = 1
+    else:
+        user.current_streak = 1
+        user.longest_streak = 1
+
+    user.last_completion_date = today
+
+    db.session.commit()
+
+    tier_emoji = {1: '🌙', 2: '⚡', 3: '🔥'}
+    message = f'Quest completed! {tier_emoji[instance.selected_tier]} +{xp_earned} XP'
     
-    category = data.get('category')
-    tasks = get_tasks(category=category, filters=filters if filters else None)
+    if leveled_up:
+        message += f' 🎉 LEVEL UP! Now level {user.current_level}!'
     
-    return jsonify({'tasks': tasks})
+    return jsonify({
+        'success': True,
+        'message': message,
+        'xp_earned': xp_earned,
+        'leveled_up': leveled_up
+    })
 
 
-if __name__ == '__main__':
-    print("\n🎮 Conquer Started!")
-    print("📍 Open your browser to: http://localhost:5000")
-    print("Press Ctrl+C to stop\n")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+# @app.route('/tasks')
+# def tasks_view():
+#     """View and manage all tasks"""
+    
+#     effort_filter = request.args.get('effort')
+#     location_filter = request.args.get('location')
+#     category_filter = request.args.get('category')
+
+#     filters = {}
+#     if effort_filter:
+#         filters['effort_type'] = effort_filter
+#     if location_filter:
+#         filters['location_type'] = location_filter
+#     # if energy_filter:
+#     #     filters['energy_level'] = energy_filter
+    
+
+#     tasks = get_tasks(category=category_filter, filters=filters if filters else None)
+
+#     return render_template('tasks.html',
+#                            tasks=tasks,
+#                            current_filters=filters,
+#                            categories=CATEGORIES,
+#                            selected_category=category_filter)
+
+
+# @app.route('/add_task', methods=['GET', 'POST'])
+# def add_task_view():
+#     """Add a new task"""
+
+#     if request.method == 'POST':
+#         title = request.form.get('title')
+#         task_type = request.form.get('task_type')
+#         category = request.form.get('category')
+        
+#         # High tier
+#         high_description = request.form.get('high_description')
+#         high_points = int(request.form.get('high_points'))
+        
+#         # Medium tier
+#         medium_description = request.form.get('medium_description')
+#         medium_points = int(request.form.get('medium_points'))
+        
+#         # Low tier
+#         low_description = request.form.get('low_description')
+#         low_points = int(request.form.get('low_points'))
+        
+#         effort_type = request.form.get('effort_type')
+#         location_type = request.form.get('location_type')
+        
+#         add_task(title, task_type, category,
+#                 high_description, high_points,
+#                 medium_description, medium_points,
+#                 low_description, low_points,
+#                 effort_type, location_type)
+        
+#         return redirect(url_for('dashboard'))
+    
+#     return render_template('add_task.html', categories=CATEGORIES)
+
+
+
+
+
+# @app.route('/complete_task/<int:task_id>', methods=['POST'])
+# def complete_task_route(task_id):
+#     """Mark a task complete w selected tier"""
+
+#     data = request.get_json()
+#     tier = data.get('tier', 'low')  # Default to low if not specified
+
+#     task = get_task_by_id(task_id)
+
+#     if task:
+#         # Get points based on tier
+#         if tier == 'high':
+#             points = task['high_points']
+#         elif tier == 'medium':
+#             points = task['medium_points']
+#         else:
+#             points = task['low_points']
+        
+#         complete_task(task_id, tier, points)
+        
+#         tier_emoji = {'high': '🔥', 'medium': '⚡', 'low': '🌙'}
+#         return jsonify({
+#             'success': True, 
+#             'message': f'Quest completed! {tier_emoji.get(tier, "")} {tier.upper()} tier +{points} XP'
+#         })
+    
+#     return jsonify({'success': False, 'message': 'Task not found'}), 404
+
+
+# @app.route('/quest_select')
+# def quest_select():
+#     """Quest selection interface based on mood/energy"""
+#     energy_filter = request.args.get('energy')
+#     category_filter = request.args.get('category')
+    
+#     return render_template('quest_select.html', 
+#                          categories=CATEGORIES,
+#                          selected_energy=energy_filter,
+#                          selected_category=category_filter)
+
+
+# @app.route('/api/tasks/filter', methods=['POST'])
+# def filter_tasks():
+#     """API endpoint to filter tasks based on current state"""
+
+#     data = request.get_json()
+
+#     filters = {}
+#     if data.get('effort_type'):
+#         filters['effort_type'] = data['effort_type']
+#     if data.get('location_type'):
+#         filters['location_type'] = data['location_type']
+    
+#     category = data.get('category')
+#     tasks = get_tasks(category=category, filters=filters if filters else None)
+    
+#     return jsonify({'tasks': tasks})
+
+
+# if __name__ == '__main__':
+#     print("\n🎮 Conquer Started!")
+#     print("📍 Open your browser to: http://localhost:5000")
+#     print("Press Ctrl+C to stop\n")
+#     app.run(debug=True, host='0.0.0.0', port=5000)

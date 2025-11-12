@@ -318,6 +318,49 @@ def complete_task(instance_id):
     })
 
 
+@app.route('/task/<int:instance_id>/delete', methods=['POST'])
+def delete_task_instance(instance_id):
+    """Delete a task instance"""
+    instance = TaskInstance.query.get_or_404(instance_id)
+
+    if instance.is_completed:
+        return jsonify({'success': False, 'message': 'Cannot delete completed task'}), 400
+    
+    db.session.delete(instance)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Task removed'})
+
+
+@app.route('/api/templates/filter', methods=['POST'])
+def filter_templates():
+    """API endpoint to filter templates"""
+    data = request.get_json()
+    
+    query = TaskTemplate.query.filter_by(is_active=True)
+    
+    if data.get('category'):
+        query = query.filter_by(category=data['category'])
+    if data.get('effort_type'):
+        query = query.filter_by(effort_type=data['effort_type'])
+    if data.get('location_type'):
+        query = query.filter_by(location_type=data['location_type'])
+    
+    templates = query.all()
+    
+    return jsonify({
+        'templates': [{
+            'id': t.id,
+            'title': t.title,
+            'category': t.category,
+            'task_type': t.task_type,
+            'effort_type': t.effort_type,
+            'location_type': t.location_type,
+            'subtask_count': len(t.subtasks)
+        } for t in templates]
+    })
+
+
 # @app.route('/tasks')
 # def tasks_view():
 #     """View and manage all tasks"""

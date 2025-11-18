@@ -62,15 +62,24 @@
                     <div class="tier-selector">
                         <p class="tier-prompt">Choose your energy:</p>
                         <div class="tier-buttons">
-                            <button class="tier-btn low" onclick="addTemplateToToday({{ template.id }}, 1)">
-                                🌙 Low<br><span class="tier-xp">~{{ template.base_xp_low }} XP</span>
-                            </button>
-                            <button class="tier-btn medium" onclick="addTemplateToToday({{ template.id }}, 2)">
-                                ⚡ Medium<br><span class="tier-xp">~{{ template.base_xp_medium }} XP</span>
-                            </button>
-                            <button class="tier-btn high" onclick="addTemplateToToday({{ template.id }}, 3)">
-                                🔥 High<br><span class="tier-xp">~{{ template.base_xp_high }} XP</span>
-                            </button>
+                            <form method="POST" action="{{ url_for('add_task_from_template', template_id=template.id) }}" style="display: inline;">
+                                <input type="hidden" name="tier" value="1">
+                                <button type="submit" class="tier-btn low">
+                                    🌙 Low<br><span class="tier-xp">~{{ template.base_xp_low }} XP</span>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('add_task_from_template', template_id=template.id) }}" style="display: inline;">
+                                <input type="hidden" name="tier" value="2">
+                                <button type="submit" class="tier-btn medium">
+                                    ⚡ Medium<br><span class="tier-xp">~{{ template.base_xp_medium }} XP</span>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('add_task_from_template', template_id=template.id) }}" style="display: inline;">
+                                <input type="hidden" name="tier" value="3">
+                                <button type="submit" class="tier-btn high">
+                                    🔥 High<br><span class="tier-xp">~{{ template.base_xp_high }} XP</span>
+                                </button>
+                            </form>
                         </div>
                     </div>
                     
@@ -88,34 +97,4 @@
         {% endif %}
     </div>
 </div>
-
-<div id="notification" class="notification"></div>
-
-<script>
-function addTemplateToToday(templateId, tier) {
-    fetch(`/template/${templateId}/add`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ tier: tier })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            // Redirect to the new task instance after a brief delay
-            setTimeout(() => {
-                window.location.href = `/task/${data.instance_id}`;
-            }, 1000);
-        } else {
-            showNotification(data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error adding task', 'error');
-    });
-}
-</script>
 {% endblock %}

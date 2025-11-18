@@ -38,22 +38,23 @@
         <h2>📋 Checklist</h2>
         <div class="subtasks-list">
             {% for completion in instance.subtask_completions %}
-            <div class="subtask-item {% if completion.completed %}completed{% endif %}" 
-                 onclick="toggleSubtask({{ instance.id }}, {{ completion.id }})">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" 
-                           id="subtask-{{ completion.id }}" 
-                           {% if completion.completed %}checked{% endif %}
-                           onclick="event.stopPropagation()">
-                    <label for="subtask-{{ completion.id }}"></label>
+            <form method="POST" action="{{ url_for('toggle_subtask', instance_id=instance.id, completion_id=completion.id) }}" class="subtask-form">
+                <div class="subtask-item {% if completion.completed %}completed{% endif %}">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" 
+                               id="subtask-{{ completion.id }}" 
+                               {% if completion.completed %}checked{% endif %}
+                               onchange="this.form.submit()">
+                        <label for="subtask-{{ completion.id }}"></label>
+                    </div>
+                    <div class="subtask-content">
+                        <span class="subtask-text">{{ completion.subtask.description }}</span>
+                        <span class="subtask-level-badge level-{{ completion.subtask.level }}">
+                            L{{ completion.subtask.level }}
+                        </span>
+                    </div>
                 </div>
-                <div class="subtask-content">
-                    <span class="subtask-text">{{ completion.subtask.description }}</span>
-                    <span class="subtask-level-badge level-{{ completion.subtask.level }}">
-                        L{{ completion.subtask.level }}
-                    </span>
-                </div>
-            </div>
+            </form>
             {% endfor %}
         </div>
     </div>
@@ -69,13 +70,15 @@
                 {% if instance.selected_tier == 1 %}Medium{% else %}High{% endif %} 
                 Energy and tackle more?</p>
             </div>
-            <button class="btn-upgrade" onclick="upgradeTier({{ instance.id }})">
-                {% if instance.selected_tier == 1 %}
-                Upgrade to ⚡ Medium Energy
-                {% else %}
-                Upgrade to 🔥 High Energy
-                {% endif %}
-            </button>
+            <form method="POST" action="{{ url_for('upgrade_tier', instance_id=instance.id) }}">
+                <button type="submit" class="btn-upgrade">
+                    {% if instance.selected_tier == 1 %}
+                    Upgrade to ⚡ Medium Energy
+                    {% else %}
+                    Upgrade to 🔥 High Energy
+                    {% endif %}
+                </button>
+            </form>
         </div>
     </div>
     {% endif %}
@@ -84,17 +87,21 @@
     <div class="task-actions-section">
         {% if not instance.is_completed %}
             {% if status.percentage >= 50 %}
-            <button class="btn-primary btn-large" onclick="completeTask({{ instance.id }})">
-                ✓ Complete Quest
-            </button>
+            <form method="POST" action="{{ url_for('complete_task', instance_id=instance.id) }}" style="display: inline;">
+                <button type="submit" class="btn-primary btn-large">
+                    ✓ Complete Quest
+                </button>
+            </form>
             {% else %}
             <button class="btn-primary btn-large" disabled title="Complete at least 50% of subtasks">
                 ✓ Complete Quest ({{ status.completed }}/{{ status.total }} done)
             </button>
             {% endif %}
-            <button class="btn-danger" onclick="deleteTask({{ instance.id }})">
-                Remove Task
-            </button>
+            <form method="POST" action="{{ url_for('delete_task_instance', instance_id=instance.id) }}" onsubmit="return confirm('Remove this task? (Cannot be undone)')" style="display: inline;">
+                <button type="submit" class="btn-danger">
+                    Remove Task
+                </button>
+            </form>
         {% else %}
             <div class="completed-banner">
                 ✨ Quest Completed! +{{ instance.xp_earned }} XP
@@ -105,102 +112,4 @@
         </a>
     </div>
 </div>
-
-<div id="notification" class="notification"></div>
-
-<script>
-function toggleSubtask(instanceId, completionId) {
-    fetch(`/task/${instanceId}/toggle-subtask/${completionId}`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Reload to update UI
-            window.location.reload();
-        } else {
-            showNotification('Error updating subtask', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error updating subtask', 'error');
-    });
-}
-
-function upgradeTier(instanceId) {
-    if (!confirm('Upgrade to next energy tier and add more subtasks?')) {
-        return;
-    }
-
-    fetch(`/task/${instanceId}/upgrade-tier`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        } else {
-            showNotification(data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error upgrading tier', 'error');
-    });
-}
-
-function completeTask(instanceId) {
-    if (!confirm('Mark this quest as complete?')) {
-        return;
-    }
-
-    fetch(`/task/${instanceId}/complete`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            setTimeout(() => {
-                window.location.href = '{{ url_for("dashboard") }}';
-            }, 2000);
-        } else {
-            showNotification(data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error completing task', 'error');
-    });
-}
-
-function deleteTask(instanceId) {
-    if (!confirm('Remove this task? (Cannot be undone)')) {
-        return;
-    }
-
-    fetch(`/task/${instanceId}/delete`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            setTimeout(() => {
-                window.location.href = '{{ url_for("dashboard") }}';
-            }, 1000);
-        } else {
-            showNotification(data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error deleting task', 'error');
-    });
-}
-</script>
 {% endblock %}

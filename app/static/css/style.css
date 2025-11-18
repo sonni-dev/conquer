@@ -1116,6 +1116,49 @@ body {
     background: var(--danger-color);
 }
 
+/* Flash Messages */
+.flash-message {
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.flash-success {
+    background: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid var(--success-color);
+}
+
+.flash-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid var(--danger-color);
+}
+
+/* Subtask Form Styling */
+.subtask-form {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.subtask-form .subtask-item {
+    cursor: pointer;
+}
+
 /* Empty States */
 .empty-state-large {
     grid-column: 1 / -1;

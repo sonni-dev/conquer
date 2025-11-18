@@ -64,7 +64,7 @@ pip install flask flask-sqlalchemy --break-system-packages
 python populate_sample_data.py
 
 # Run the app
-python app.py
+python main.py
 
 # Open browser to http://localhost:5000
 ```

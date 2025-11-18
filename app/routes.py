@@ -151,7 +151,7 @@ def add_task_from_template(template_id):
 
     # Create task instance
     instance = TaskInstance(
-        template_id=template.id,
+        template=template,
         selected_tier=tier
     )
     db.session.add(instance)
@@ -161,8 +161,8 @@ def add_task_from_template(template_id):
     available_subtasks = template.get_subtasks_for_tier(tier)
     for subtask in available_subtasks:
         completion = SubTaskCompletion(
-            task_instance=instance.id,
-            subtask_id=subtask.id,
+            task_instance=instance,
+            subtask=subtask,
             completed=False
         )
         db.session.add(completion)
@@ -179,7 +179,7 @@ def add_task_from_template(template_id):
 def task_detail(instance_id):
     """View task instance with subtasks"""
     instance = TaskInstance.query.get_or_404(instance_id)
-    return render_template('tasks_detail.html', instance=instance)
+    return render_template('task_detail.html', instance=instance)
 
 
 @app.route('/task/<int:instance_id>/toggle-subtask/<int:completion_id>', methods=['POST'])
